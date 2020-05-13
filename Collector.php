@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  *
  *
@@ -23,6 +23,11 @@ class Collector extends RouteCollector
      */
     protected $reverserDataGenerator;
 
+    /**
+     * @var string
+     */
+    protected $currentGroupName;
+
     public function __construct(RouteParser $routeParser, DataGenerator $dataGenerator, ReverserDataGenerator $reverserDataGenerator)
     {
         parent::__construct($routeParser, $dataGenerator);
@@ -30,7 +35,7 @@ class Collector extends RouteCollector
     }
 
     /**
-     * Add route with name for reversing
+     * Add route with name for reversing.
      *
      * @param string|string[] $httpMethod
      * @param string $route
@@ -47,11 +52,30 @@ class Collector extends RouteCollector
                 $this->dataGenerator->addRoute($method, $routeData, $handler);
             }
         }
-        if ($name) {
+        if ($name !== null) {
             foreach ($routeDatas as $routeData) {
                 $this->reverserDataGenerator->addRoute($name, $routeData);
             }
         }
+    }
+
+    /**
+     * Create a route group with a common prefix and name
+     *
+     * All routes created in the passed callback will have the given group prefix and name prepended
+     *
+     * @param $prefix
+     * @param callable $callback
+     * @param string|null $name
+     */
+    public function group($prefix, callable $callback, ?string $name = null): void
+    {
+        $previousGroupName = $this->currentGroupName;
+        if ($name !== null) {
+            $this->currentGroupName = $previousGroupName . $name;
+        }
+        $this->addGroup($prefix, $callback);
+        $this->currentGroupName = $previousGroupName;
     }
 
     /**

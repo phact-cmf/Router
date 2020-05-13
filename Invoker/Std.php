@@ -12,7 +12,6 @@
 
 namespace Phact\Router\Invoker;
 
-
 use InvalidArgumentException;
 use Phact\Router\Invoker;
 use Phact\Router\RouterHandler;
@@ -47,8 +46,9 @@ class Std implements Invoker
             foreach ($handler->getMiddlewares() as $middleware) {
                 $middlewaresResolved[] = $this->resolveMiddleware($middleware);
             }
+            $request = $request->withAttribute('router:variables', $variables);
             if ($handler->getName()) {
-                $request = $request->withAttribute('routeName', $handler->getName());
+                $request = $request->withAttribute('router:name', $handler->getName());
             }
             $requestHandler = $this->processHandler($request, $handler->getOriginalHandler(), $variables);
             return (new Next($requestHandler, $middlewaresResolved))->handle($request);

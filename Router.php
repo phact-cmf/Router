@@ -1,481 +1,287 @@
-<?php
+<?php declare(strict_types=1);
+/**
+ *
+ *
+ * All rights reserved.
+ *
+ * @author Okulov Anton
+ * @email qantus@mail.ru
+ * @version 1.0
+ * @date 12/05/2020 10:03
+ */
 
 namespace Phact\Router;
 
-use Exception;
-use InvalidArgumentException;
-use Phact\Helpers\Text;
-use Traversable;
+use FastRoute\Dispatcher;
+use FastRoute\RouteCollector;
+use HttpException;
+use Phact\Router\ReverserDataGenerator\Std;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Container\ContainerInterface;
 
-/**
- * Class Router
- * Inspired by AltoRouter
- * @link https://github.com/dannyvankooten/AltoRouter
- *
- * @package Phact\Router
- */
-class Router
+class Router implements MiddlewareInterface
 {
     /**
-     * @var array Array of all routes (incl. named routes).
+     * @var Collector
      */
-    protected $routes = [];
+    protected $collector;
 
     /**
-     * @var array Array of all named routes.
+     * @var string
      */
-    protected $namedRoutes = [];
+    protected $dispatcherClass;
 
     /**
-     * @var string Can be used to ignore leading part of the Request URL (if main file lives in subdirectory of host)
+     * @var string
      */
-    protected $basePath = '';
-
-    protected $cacheTimeout = 10;
-    
-    protected $matched = [];
+    protected $reverserClass;
 
     /**
-     * @var array Array of default match types (regex helpers)
+     * @var Dispatcher
      */
-    protected $matchTypes = array(
-        'i' => '[0-9]++',
-        'a' => '[0-9A-Za-z]++',
-        's' => '[0-9A-Za-z\-]++',
-        'slug' => '[0-9A-Za-z_\-]++',
-        'h' => '[0-9A-Fa-f]++',
-        '*' => '.+?',
-        '**' => '.++',
-        '' => '[^/\.]++'
-    );
+    protected $dispatcher;
 
     /**
-     * @var CacheInterface
+     * @var Reverser
      */
-    protected $_cacheDriver;
+    protected $reverser;
 
     /**
-     * @var string|null
+     * @var Invoker
      */
-    protected $_configPath;
-
-    public function __construct(string $configPath = null, $cacheDriver = null)
-    {
-        $this->_cacheDriver = $cacheDriver;
-        $this->_configPath = $configPath;
-    }
+    protected $invoker;
 
     /**
-     * Retrieves all routes.
-     * Useful if you want to process or display routes.
-     * @return array All routes.
-     */
-    public function getRoutes()
-    {
-        $this->fetchRoutes();
-        return $this->routes;
-    }
-
-    /**
-     * Retrieves all routes.
-     * Useful if you want to process or display routes.
-     * @return array All routes.
-     */
-    public function getNamedRoutes()
-    {
-        $this->fetchRoutes();
-        return $this->namedRoutes;
-    }
-
-    protected function fetchRoutes()
-    {
-        if (empty($this->routes)) {
-            $routes = null;
-            $cacheKey = 'PHACT__ROUTER';
-            if (!is_null($this->cacheTimeout) && $this->_cacheDriver) {
-                $routes = $this->_cacheDriver->get($cacheKey);
-                if ($routes) {
-                    $this->namedRoutes = $routes['named'];
-                    $this->routes = $routes['all'];
-                }
-                $this->matched = $this->getMatchedRoutes();
-            }
-
-            if (!$routes) {
-                if ($this->_configPath) {
-                    $this->collectFromFile($this->_configPath);
-                }
-                if (!is_null($this->cacheTimeout) && $this->_cacheDriver) {
-                    $routes = [
-                        'named' => $this->namedRoutes,
-                        'all' => $this->routes
-                    ];
-                    $this->_cacheDriver->set($cacheKey, $routes, $this->cacheTimeout);
-                }
-            }
-        }
-        return $this->routes;
-    }
-
-    /**
-     * Add multiple routes at once from array in the following format:
+     * Is new generation of dispatcher needed
      *
-     *   $routes = array(
-     *      array($method, $route, $target, $name)
-     *   );
+     * @var bool
+     */
+    protected $isDirtyDispatcher = true;
+
+    /**
+     * Is new generation of reverser needed
      *
-     * @param array $routes
-     * @return void
-     * @author Koen Punt
-     * @throws Exception
+     * @var bool
      */
-    public function addRoutes($routes)
+    protected $isDirtyReverser = true;
+
+    /**
+     * @var array
+     */
+    protected $currentMiddlewares = [];
+
+    public function __construct(?Collector $collector = null, ?string $dispatcherClass = null, ?string $reverserClass = null, ?ContainerInterface $container = null, ?Invoker $invoker = null)
     {
-        if (!is_array($routes) && !$routes instanceof Traversable) {
-            throw new Exception('Routes should be an array or an instance of Traversable');
+        if ($collector === null) {
+            $collector = new Collector(
+                new \FastRoute\RouteParser\Std(),
+                new \FastRoute\DataGenerator\GroupCountBased(),
+                new Std()
+            );
         }
-        foreach ($routes as $route) {
-            call_user_func_array(array($this, 'map'), $route);
+        $this->collector = $collector;
+
+        if ($dispatcherClass === null) {
+            $dispatcherClass = \FastRoute\Dispatcher\GroupCountBased::class;
         }
+        $this->dispatcherClass = $dispatcherClass;
+
+        if ($reverserClass === null) {
+            $reverserClass = \Phact\Router\Reverser\Std::class;
+        }
+        $this->reverserClass = $reverserClass;
+
+        if (!$invoker) {
+            $invoker = new \Phact\Router\Invoker\Std($container);
+        }
+        $this->invoker = $invoker;
     }
 
     /**
-     * Set the base path.
-     * Useful if you are running your application from a subdirectory.
-     * @param $basePath
-     */
-    public function setBasePath($basePath)
-    {
-        $this->basePath = $basePath;
-    }
-
-    /**
-     * Add named match types. It uses array_merge so keys can be overwritten.
+     * Set common middlewares
      *
-     * @param array $matchTypes The key is the name and the value is the regex.
+     * @param array $middlewares
      */
-    public function addMatchTypes($matchTypes)
+    public function setMiddlewares(array $middlewares): void
     {
-        $this->matchTypes = array_merge($this->matchTypes, $matchTypes);
+        $this->currentMiddlewares = $middlewares;
+    }
+
+    protected function setIsDirty(): void
+    {
+        $this->isDirtyDispatcher = true;
+        $this->isDirtyReverser = true;
     }
 
     /**
-     * Map a route to a target
-     *
-     * @param string $method One of 5 HTTP Methods, or a pipe-separated list of multiple HTTP Methods (GET|POST|PATCH|PUT|DELETE)
-     * @param string $route The route regex, custom regex must start with an @. You can use multiple pre-set regex filters, like [i:id]
-     * @param mixed $target The target where this route should point to. Can be anything.
-     * @param string $name Optional name of this route. Supply if you want to reverse route this url in your application.
-     * @throws Exception
-     */
-    public function map($method, $route, $target, $name = null)
-    {
-        if ($route == '') {
-            $route = '/';
-        }
-
-        $this->routes[] = array($method, $route, $target, $name);
-
-        if ($name) {
-            if (isset($this->namedRoutes[$name])) {
-                throw new \Exception("Can not redeclare route '{$name}'");
-            } else {
-                $this->namedRoutes[$name] = $route;
-            }
-        }
-
-        return;
-    }
-
-    /**
-     * Reversed routing
-     *
-     * Generate the URL for a named route. Replace regexes with supplied parameters
-     *
-     * @param string $routeName The name of the route.
-     * @param array @params Associative array of parameters to replace placeholders with.
-     * @return string The URL of the route with named parameters in place.
-     * @throws Exception
-     */
-    public function url($routeName, $params = array())
-    {
-        $namedRoutes = $this->getNamedRoutes();
-
-        // Check if named route exists
-        if (!isset($namedRoutes[$routeName])) {
-            throw new \Exception("Route '{$routeName}' does not exist.");
-        }
-
-        if (!is_array($params)) {
-            $params = [$params];
-        }
-        // Replace named parameters
-        $route = $namedRoutes[$routeName];
-
-        // prepend base path to route url again
-        $url = $this->basePath . $route;
-
-        $matches = isset($this->matched[$routeName]) ? $this->matched[$routeName] : null;
-        if (is_null($matches)) {
-            preg_match_all('`(\/|)\{.*?:(.+?)\}(\?|)`', $route, $matches, PREG_SET_ORDER);
-            $this->matched[$routeName] = $matches;
-            $this->setMatchedRoutes($this->matched);
-        }
-        $usedParams = [];
-        if ($matches) {
-            $counter = 0;
-            foreach ($matches as $match) {
-                $param = $match[2];
-                $block = $match[0];
-                if ($match[1]) {
-                    $block = substr($block, 1);
-                }
-                if (isset($params[$param])) {
-                    $url = str_replace($block, $params[$param], $url);
-                } elseif (isset($params[$counter])) {
-                    $url = str_replace($block, $params[$counter], $url);
-                } elseif ($match[3]) {
-                    $url = str_replace($match[1] . $block, '', $url);
-                } else {
-                    throw new InvalidArgumentException('Incorrect params of route');
-                }
-                $usedParams[] = $param;
-                $counter++;
-            }
-        }
-        $query = [];
-        foreach ($params as $param => $value) {
-            if (is_string($param) && !in_array($param, $usedParams)) {
-                $query[$param] = $value;
-            }
-        }
-
-        return $url . ($query ? '?' . http_build_query($query) : '');
-    }
-
-    /**
-     * Match a given Request Url against stored routes
-     * @param string $requestUrl
-     * @param string $requestMethod
-     * @return array|boolean Array with route information on success, false on failure (no match).
-     * @throws Exception
-     */
-    public function match($requestUrl = null, $requestMethod = null)
-    {
-        $params = array();
-        $match = false;
-
-        // set Request Url if it isn't passed as parameter
-        if ($requestUrl === null) {
-            $requestUrl = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
-        } elseif ($requestUrl === '') {
-            $requestUrl = '/';
-        }
-
-        // strip base path from request url
-        $requestUrl = substr($requestUrl, strlen($this->basePath));
-
-        // Strip query string (?a=b) from Request Url
-        if (($strpos = strpos($requestUrl, '?')) !== false) {
-            $requestUrl = substr($requestUrl, 0, $strpos);
-        }
-
-        // set Request Method if it isn't passed as a parameter
-        if ($requestMethod === null) {
-            $requestMethod = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET';
-        }
-
-        $matches = [];
-        $compiled = $this->getCompiledRoutes();
-        $setCompiled = false;
-        foreach ($this->getRoutes() as $handler) {
-            list($method, $_route, $target, $name) = $handler;
-
-            $methods = explode('|', $method);
-            $method_match = false;
-
-            // Check if request method matches. If not, abandon early. (CHEAP)
-            foreach ($methods as $method) {
-                if (strcasecmp($requestMethod, $method) === 0) {
-                    $method_match = true;
-                    break;
-                }
-            }
-
-            // Method did not match, continue to next route.
-            if (!$method_match) continue;
-
-            // Check for a wildcard (matches all)
-            if ($_route === '*') {
-                $match = true;
-            } elseif (isset($_route[0]) && $_route[0] === '@') {
-                $pattern = '`' . substr($_route, 1) . '`u';
-                $match = preg_match($pattern, $requestUrl, $params);
-            } else {
-                $route = null;
-                $regex = false;
-                $j = 0;
-                $n = isset($_route[0]) ? $_route[0] : null;
-                $i = 0;
-
-                // Find the longest non-regex substring and match it against the URI
-                while (true) {
-                    if (!isset($_route[$i])) {
-                        break;
-                    } elseif (false === $regex) {
-                        $c = $n;
-                        $regex = $c === '[' || $c === '(' || $c === '.';
-                        if (false === $regex && false !== isset($_route[$i + 1])) {
-                            $n = $_route[$i + 1];
-                            $regex = $n === '?' || $n === '+' || $n === '*' || $n === '{';
-                        }
-                        if (false === $regex && $c !== '/' && (!isset($requestUrl[$j]) || $c !== $requestUrl[$j])) {
-                            continue 2;
-                        }
-                        $j++;
-                    }
-                    $route .= $_route[$i++];
-                }
-
-                if (!isset($compiled[$route])) {
-                    $setCompiled = true;
-                    $compiled[$route] = $this->compileRoute($route);
-                }
-                $regex = $compiled[$route];
-                $match = preg_match($regex, $requestUrl, $params);
-            }
-
-            if (($match == true || $match > 0)) {
-
-                if ($params) {
-                    foreach ($params as $key => $value) {
-                        if (is_numeric($key)) unset($params[$key]);
-                    }
-                }
-
-                $matches[] = array(
-                    'target' => $target,
-                    'params' => $params,
-                    'name' => $name
-                );
-            }
-        }
-        if ($setCompiled) {
-            $this->setCompiledRoutes($compiled);
-        }
-
-        return $matches;
-    }
-
-    protected function getCompiledRoutes()
-    {
-        if (!$this->cacheTimeout || !$this->_cacheDriver) {
-            return [];
-        }
-        return $this->_cacheDriver->get('PHACT__ROUTER_COMPILED');
-    }
-
-    protected function setCompiledRoutes($routes)
-    {
-        if (!$this->cacheTimeout || !$this->_cacheDriver) {
-            return true;
-        }
-        $this->_cacheDriver->set('PHACT__ROUTER_COMPILED', $routes, $this->cacheTimeout);
-        return true;
-    }
-
-    protected function getMatchedRoutes()
-    {
-        if (!$this->cacheTimeout || !$this->_cacheDriver) {
-            return [];
-        }
-        return $this->_cacheDriver->get('PHACT__ROUTER_MATCHED', []);
-    }
-
-    /**
-     * @param $routes
-     * @return bool
-     */
-    protected function setMatchedRoutes($routes)
-    {
-        if (!$this->cacheTimeout || !$this->_cacheDriver) {
-            return true;
-        }
-        $this->_cacheDriver->set('PHACT__ROUTER_MATCHED', $routes, $this->cacheTimeout);
-        return true;
-    }
-
-    /**
-     * Compile the regex for a given route (EXPENSIVE)
+     * @param $httpMethod
      * @param $route
+     * @param $handler
+     * @param string|null $name
+     */
+    public function addRoute($httpMethod, $route, $handler, ?string $name = null): void
+    {
+        $this->collector->map($httpMethod, $route, $handler, $name);
+        $this->setIsDirty();
+    }
+
+    /**
+     * @param $prefix
+     * @param callable $callback
+     * @param string|null $name
+     */
+    public function addGroup($prefix, callable $callback, ?string $name = null): void
+    {
+        $this->collector->group($prefix, $callback, $name);
+    }
+
+    /**
+     * @param $httpMethod
+     * @param $route
+     * @param $handler
+     * @param string|null $name
+     * @param array $middlewares
+     */
+    public function map($httpMethod, $route, $handler, ?string $name = null, array $middlewares = []): void
+    {
+        $middlewares = array_merge($this->currentMiddlewares, $middlewares);
+        $routeHandler = $this->createRoute($handler, $name, $middlewares);
+        $this->collector->map($httpMethod, $route, $routeHandler, $name);
+        $this->setIsDirty();
+    }
+
+    /**
+     * @param $prefix
+     * @param callable $callback
+     * @param string|null $name
+     * @param array $middlewares
+     */
+    public function group($prefix, callable $callback, ?string $name = null, array $middlewares = []): void
+    {
+        $previousMiddlewares = $this->currentMiddlewares;
+        $this->currentMiddlewares = array_merge($previousMiddlewares, $middlewares);
+        $this->collector->group($prefix, $callback, $name);
+        $this->currentMiddlewares = $previousMiddlewares;
+    }
+
+    /**
+     * Create handler wrapper
+     *
+     * @param mixed $handler
+     * @param MiddlewareInterface[] $middlewares
+     * @param string|null $name
+     * @return RouterHandler
+     */
+    public function createRoute($handler, ?string $name = null, array $middlewares = []): RouterHandler
+    {
+        if ($handler instanceof RouterHandler) {
+            return $handler;
+        }
+        return new Route($handler, $name, $middlewares);
+    }
+
+    /**
+     * @return RouteCollector
+     */
+    public function getCollector(): RouteCollector
+    {
+        return $this->collector;
+    }
+
+    /**
+     * @return Reverser
+     */
+    public function getReverser(): Reverser
+    {
+        if (!$this->reverser || $this->isDirtyReverser) {
+            $reverserClass = $this->reverserClass;
+            $this->reverser = new $reverserClass($this->collector->getData());
+            $this->isDirtyReverser = false;
+        }
+        return $this->reverser;
+    }
+
+    /**
+     * @return Dispatcher
+     */
+    public function getDispatcher(): Dispatcher
+    {
+        if (!$this->dispatcher || $this->isDirtyDispatcher) {
+            $dispatcherClass = $this->dispatcherClass;
+            $this->dispatcher = new $dispatcherClass($this->collector->getData());
+            $this->isDirtyDispatcher = false;
+        }
+        return $this->dispatcher;
+    }
+
+    /**
+     * @param string $routeName
+     * @param array $variables
      * @return string
      */
-    protected function compileRoute($route)
+    public function reverse(string $routeName, array $variables = []): string
     {
-        if (preg_match_all('`(/|\.|)\{([^:\}]*+)(?::([^:\}]*+))?\}(\?|)`', $route, $matches, PREG_SET_ORDER)) {
-
-            $matchTypes = $this->matchTypes;
-            foreach ($matches as $match) {
-                list($block, $pre, $type, $param, $optional) = $match;
-
-                if (isset($matchTypes[$type])) {
-                    $type = $matchTypes[$type];
-                }
-                if ($pre === '.') {
-                    $pre = '\.';
-                }
-
-                //Older versions of PCRE require the 'P' in (?P<named>)
-                $pattern = '(?:'
-                    . ($pre !== '' ? $pre : null)
-                    . '('
-                    . ($param !== '' ? "?P<$param>" : null)
-                    . $type
-                    . '))'
-                    . ($optional !== '' ? '?' : null);
-
-                $route = str_replace($block, $pattern, $route);
-            }
-
-        }
-        return "`^$route$`u";
+        return $this->getReverser()->reverse($routeName, $variables);
     }
 
     /**
-     * Append routes from array
+     * Alias for reverse
      *
-     * @param array $configuration
-     * @param string $namespace
-     * @param string $route
-     * @throws Exception
+     * @param string $routeName
+     * @param array $variables
+     * @return string
      */
-    public function collect($configuration = [], $namespace = '', $route = '')
+    public function url(string $routeName, array $variables = []): string
     {
-        foreach ($configuration as $item) {
-            $this->appendRoute($item, $namespace, $route);
-        }
+        return $this->reverse($routeName, $variables);
     }
 
     /**
-     * Append single route
-     * @param $item
-     * @param string $namespace
-     * @param string $route
-     * @throws Exception
+     * Dispatches against the provided HTTP method verb and URI.
+     *
+     * Returns array with one of the following formats:
+     *
+     *     [Dispatcher::NOT_FOUND]
+     *     [Dispatcher::METHOD_NOT_ALLOWED, ['GET', 'OTHER_ALLOWED_METHODS']]
+     *     [Dispatcher::FOUND, $handler, ['varName' => 'value', ...]]
+     *
+     * @param string $httpMethod
+     * @param string $uri
+     *
+     * @return array
      */
-    public function appendRoute($item, $namespace = '', $route = '/')
+    public function dispatch(string $httpMethod, string $uri): array
     {
-        $methods = isset($item['methods']) ? $item['methods'] : ["GET", "POST"];
-        $method = implode('|', $methods);
-        $name = isset($item['name']) ? $item['name'] : '';
-        if ($name && $namespace) {
-            $name = $namespace . ':' . $name;
+        return $this->getDispatcher()->dispatch($httpMethod, $uri);
+    }
+
+    /**
+     * @inheritDoc
+     *
+     * @throws HttpException
+     */
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    {
+        $httpMethod = $request->getMethod();
+        $uri = $request->getUri()->getPath();
+
+        $match = $this->dispatch($httpMethod, $uri);
+
+        switch ($match[0]) {
+            case Dispatcher::NOT_FOUND:
+                break;
+            case Dispatcher::METHOD_NOT_ALLOWED:
+                throw new HttpException('Method not allowed', 405);
+                break;
+            case Dispatcher::FOUND:
+                $params = $match[2];
+                $this->invoker->invoke($request, $match[1], $params);
+                break;
         }
-        $path = isset($item['route']) ? $item['route'] : '';
-        if ($route || $path) {
-            $path = $route . $path;
-        }
-        $target = isset($item['target']) ? $item['target'] : null;
-        $this->map($method, $path, $target, $name);
+
+        return $handler->handle($request);
     }
 }

@@ -14,7 +14,7 @@ namespace Phact\Router;
 
 use Psr\Http\Server\MiddlewareInterface;
 
-class Handler implements RouterHandler
+class Route implements RouterHandler
 {
     /**
      * @var mixed
@@ -36,7 +36,7 @@ class Handler implements RouterHandler
      * @param array $middlewares
      * @param string|null $name
      */
-    public function __construct($originalHandler, array $middlewares = [], ?string $name = null)
+    public function __construct($originalHandler, ?string $name = null, array $middlewares = [])
     {
         $this->originalHandler = $originalHandler;
         $this->middlewares = $middlewares;
