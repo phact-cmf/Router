@@ -67,14 +67,18 @@ class Collector extends RouteCollector
      * @param $prefix
      * @param callable $callback
      * @param string|null $name
+     * @param null $callbackScope
      */
-    public function group($prefix, callable $callback, ?string $name = null): void
+    public function group($prefix, callable $callback, ?string $name = null, $callbackScope = null): void
     {
         $previousGroupName = $this->currentGroupName;
         if ($name !== null) {
             $this->currentGroupName = $previousGroupName . $name;
         }
-        $this->addGroup($prefix, $callback);
+        $previousGroupPrefix = $this->currentGroupPrefix;
+        $this->currentGroupPrefix = $previousGroupPrefix . $prefix;
+        $callback($callbackScope ?: $this);
+        $this->currentGroupPrefix = $previousGroupPrefix;
         $this->currentGroupName = $previousGroupName;
     }
 

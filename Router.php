@@ -135,7 +135,7 @@ class Router implements MiddlewareInterface
      */
     public function addGroup($prefix, callable $callback, ?string $name = null): void
     {
-        $this->collector->group($prefix, $callback, $name);
+        $this->collector->group($prefix, $callback, $name, $this);
     }
 
     /**
@@ -163,7 +163,7 @@ class Router implements MiddlewareInterface
     {
         $previousMiddlewares = $this->currentMiddlewares;
         $this->currentMiddlewares = array_merge($previousMiddlewares, $middlewares);
-        $this->collector->group($prefix, $callback, $name);
+        $this->collector->group($prefix, $callback, $name, $this);
         $this->currentMiddlewares = $previousMiddlewares;
     }
 
