@@ -21,8 +21,8 @@ $router->addRoute('GET', '/test/{name:[a-z]+}', function () {
 
 $router->addGroup('GET', '/api', function (Router $router) {
     $router->addRoute('GET', '/users', function () {
-        // Handler for name here!
-    }, 'users')
+        // Handler for users here!
+    }, 'users');
 }, 'api:');
 
 $reversedRoute = $router->reverse('test_with_name', [
@@ -39,4 +39,59 @@ $reversedRoute = $router->reverse('test_with_name', [
 // Just like with FastRoute
 $data = $router->dispatch('GET', /test');
 ```
+
+### Если мы хотим обрабатывать PSR-7 запросы
+
+Router имплементирует MiddlewareInterface, поэтому легко встраивается в любые Pipelines
+
+```
+$router = new Router();
+$router->addRoute('GET', '/test/{name:[a-z]+}', function () {
+    // Handler for name here!
+}, 'test_with_name');
+$router->map('POST', '/admin', function () {
+    // Handler here!
+}, 'admin', [
+    AuthMiddleware::class
+    CSRFValidationMiddleware::class
+]);
+
+$router->group('GET', '/api', function (Router $router) {
+    $router->map('GET', '/users', function () {
+        // Handler for users here!
+    }, 'users', [
+        UsersGuardMiddleware::class
+    ]);
+}, 'api:', [
+    ApiAuthMiddleware::class
+]);
+
+$reversedRoute = $router->reverse('test_with_name', [
+    'name' => 'somename',
+    'additional' => 'variable'
+]);
+// '/test/somename?additional=variable'
+
+$response = $router->process($request, $defaultHandler);
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
