@@ -10,7 +10,7 @@
  * @date 12/05/2020 16:49
  */
 
-namespace Phact\Router;
+namespace Phact\Router\Invoker;
 
 use http\Exception\UnexpectedValueException;
 use Psr\Http\Message\ServerRequestInterface;

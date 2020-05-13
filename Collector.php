@@ -32,12 +32,12 @@ class Collector extends RouteCollector
     /**
      * Add route with name for reversing
      *
-     * @param string $name
      * @param string|string[] $httpMethod
-     * @param array $routeData
+     * @param string $route
      * @param mixed $handler
+     * @param string $name
      */
-    public function addNamedRoute(string $name, $httpMethod, $route, $handler)
+    public function map($httpMethod, $route, $handler, ?string $name = null): void
     {
         $route = $this->currentGroupPrefix . $route;
         $routeDatas = $this->routeParser->parse($route);
@@ -47,8 +47,10 @@ class Collector extends RouteCollector
                 $this->dataGenerator->addRoute($method, $routeData, $handler);
             }
         }
-        foreach ($routeDatas as $routeData) {
-            $this->reverserDataGenerator->addRoute($name, $routeData);
+        if ($name) {
+            foreach ($routeDatas as $routeData) {
+                $this->reverserDataGenerator->addRoute($name, $routeData);
+            }
         }
     }
 

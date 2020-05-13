@@ -15,7 +15,6 @@ namespace Phact\Router;
 use FastRoute\Dispatcher;
 use FastRoute\RouteCollector;
 use HttpException;
-use InvalidArgumentException;
 use Phact\Router\ReverserDataGenerator\Std;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -51,11 +50,25 @@ class FastRouter implements MiddlewareInterface
     protected $reverser;
 
     /**
-     * @var ContainerInterface|null
+     * @var Invoker
      */
-    protected $container;
+    protected $invoker;
 
-    public function __construct(?Collector $collector = null, ?string $dispatcherClass = null, ?string $reverserClass = null, ?ContainerInterface $container = null)
+    /**
+     * Is new generation of dispatcher needed
+     *
+     * @var bool
+     */
+    protected $isDirtyDispatcher = true;
+
+    /**
+     * Is new generation of reverser needed
+     *
+     * @var bool
+     */
+    protected $isDirtyReverser = true;
+
+    public function __construct(?Collector $collector = null, ?string $dispatcherClass = null, ?string $reverserClass = null, ?ContainerInterface $container = null, ?Invoker $invoker = null)
     {
         if ($collector === null) {
             $collector = new Collector(
@@ -76,32 +89,23 @@ class FastRouter implements MiddlewareInterface
         }
         $this->reverserClass = $reverserClass;
 
-        $this->container = $container;
-    }
-
-    /**
-     * @param string $name
-     * @param string|string[] $httpMethod
-     * @param string $route
-     * @param mixed $handler
-     * @param array $middlewares
-     */
-    public function addNamedRoute(string $name, $httpMethod, $route, $handler, array $middlewares = []): void
-    {
-        $handler = $this->makeHandler($handler, $middlewares, $name);
-        $this->collector->addNamedRoute($name, $httpMethod, $route, $handler);
+        if (!$invoker) {
+            $invoker = new \Phact\Router\Invoker\Std($container);
+        }
+        $this->invoker = $invoker;
     }
 
     /**
      * @param $httpMethod
      * @param $route
      * @param $handler
+     * @param string|null $name
      * @param array $middlewares
      */
-    public function addRoute($httpMethod, $route, $handler, array $middlewares = []): void
+    public function addRoute($httpMethod, $route, $handler, ?string $name = null, array $middlewares = []): void
     {
         $handler = $this->makeHandler($handler, $middlewares);
-        $this->collector->addRoute($httpMethod, $route, $handler);
+        $this->collector->map($httpMethod, $route, $handler, $name);
     }
 
     /**
@@ -133,8 +137,11 @@ class FastRouter implements MiddlewareInterface
      */
     public function getReverser(): Reverser
     {
-        $reverserClass = $this->reverserClass;
-        return new $reverserClass($this->collector->getData());
+        if (!$this->reverser || !$this->isDirtyReverser) {
+            $reverserClass = $this->reverserClass;
+            $this->reverser = new $reverserClass($this->collector->getData());
+        }
+        return $this->reverser;
     }
 
     /**
@@ -142,8 +149,11 @@ class FastRouter implements MiddlewareInterface
      */
     public function getDispatcher(): Dispatcher
     {
-        $dispatcherClass = $this->dispatcherClass;
-        return new $dispatcherClass($this->collector->getData());
+        if (!$this->dispatcher || !$this->isDirtyDispatcher) {
+            $dispatcherClass = $this->dispatcherClass;
+            $this->dispatcher = new $dispatcherClass($this->collector->getData());
+        }
+        return $this->dispatcher;
     }
 
     /**
@@ -203,107 +213,10 @@ class FastRouter implements MiddlewareInterface
             case Dispatcher::FOUND:
                 $params = $match[2];
                 $request->withAttribute('routeParams', $params);
-                $this->resolve($request, $match[1], $params);
+                $this->invoker->invoke($request, $match[1], $params);
                 break;
         }
 
         return $handler->handle($request);
-    }
-
-    public function resolve(ServerRequestInterface $request, $handler, array $variables): ResponseInterface
-    {
-        if ($handler instanceof RequestHandlerInterface) {
-            return $handler->handle($request);
-        }
-        if ($handler instanceof RouterHandler) {
-            $middlewaresResolved = [];
-            foreach ($handler->getMiddlewares() as $middleware) {
-                $middlewaresResolved[] = $this->resolveMiddleware($middleware);
-            }
-            if ($handler->getName()) {
-                $request = $request->withAttribute('routeName', $handler->getName());
-            }
-            $requestHandler = $this->processHandler($request, $handler->getOriginalHandler(), $variables);
-            return (new Next($requestHandler, $middlewaresResolved))->handle($request);
-        }
-        return $this->processHandler($request, $handler, $variables)->handle($request);
-    }
-
-    public function processHandler(ServerRequestInterface $request, $handler, array $variables): RequestHandlerInterface
-    {
-        $controller = $this->getCallable($handler);
-        return $controller($request, $variables);
-    }
-
-    /**
-     * Get the controller callable
-     *
-     * @param $callable callable|string|array|object
-     *
-     * @return callable
-     */
-    public function getCallable($callable)
-    {
-        if (is_string($callable) && strpos($callable, '::') !== false) {
-            $callable = explode('::', $callable);
-        }
-
-        if (is_array($callable) && isset($callable[0]) && is_object($callable[0])) {
-            $callable = [$callable[0], $callable[1]];
-        }
-
-        if (is_array($callable) && isset($callable[0]) && is_string($callable[0])) {
-            $callable = [$this->resolveClass($callable[0]), $callable[1]];
-        }
-
-        if (is_string($callable) && method_exists($callable, '__invoke')) {
-            $callable = $this->resolveClass($callable);
-        }
-
-        if (!is_callable($callable)) {
-            throw new InvalidArgumentException('Could not resolve a callable for this route');
-        }
-
-        return $callable;
-    }
-
-    /**
-     * Get an object instance from a class name
-     *
-     * @param string $class
-     *
-     * @return object
-     */
-    protected function resolveClass(string $class)
-    {
-        if ($this->container instanceof ContainerInterface && $this->container->has($class)) {
-            return $this->container->get($class);
-        }
-
-        return new $class();
-    }
-
-    /**
-     * Resolve a middleware implementation, optionally from a container
-     *
-     * @param MiddlewareInterface|string $middleware
-     *
-     * @return MiddlewareInterface
-     */
-    protected function resolveMiddleware($middleware): MiddlewareInterface
-    {
-        if ($this->container === null && is_string($middleware) && class_exists($middleware)) {
-            $middleware = new $middleware;
-        }
-
-        if ($this->container !== null && is_string($middleware) && $this->container->has($middleware)) {
-            $middleware = $this->container->get($middleware);
-        }
-
-        if ($middleware instanceof MiddlewareInterface) {
-            return $middleware;
-        }
-
-        throw new InvalidArgumentException(sprintf('Could not resolve middleware class: %s', $middleware));
     }
 }
