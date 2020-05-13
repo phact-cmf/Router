@@ -46,7 +46,7 @@ Router имплементирует MiddlewareInterface, поэтому легк
 
 ```
 $router = new Router();
-$router->addRoute('GET', '/test/{name:[a-z]+}', function () {
+$router->map('GET', '/test/{name:[a-z]+}', function () {
     // Handler for name here!
 }, 'test_with_name');
 $router->map('POST', '/admin', function () {
