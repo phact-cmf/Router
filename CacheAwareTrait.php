@@ -11,7 +11,7 @@ trait CacheAwareTrait
     protected $cache;
 
     /** @var string */
-    protected $cacheKey;
+    protected $cacheKey = 'routes';
 
     /** @var null|int|DateInterval */
     protected $cacheTTL;

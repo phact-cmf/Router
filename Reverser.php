@@ -2,6 +2,9 @@
 
 namespace Phact\Router;
 
+use FastRoute\BadRouteException;
+use LogicException;
+
 /**
  * Interface Reverser
  * @package Phact\Router
@@ -16,6 +19,9 @@ interface Reverser
      * @param string $routeName
      * @param array $variables
      * @return string
+     *
+     * @throws BadRouteException
+     * @throws LogicException
      */
     public function reverse(string $routeName, array $variables = []): string;
 }

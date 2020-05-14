@@ -46,23 +46,26 @@ class Std implements Reverser
                 continue;
             }
 
-            $variableName = $part[0];
-            $usedParams[] = $variableName;
-            if (isset($variables[$variableName])) {
-                $url .= $variables[$variableName];
-                continue;
-            } elseif (isset($variables[$paramIdx])) {
-                $url .= $variables[$paramIdx];
-                continue;
-            } else {
-                throw new LogicException('Incorrect parameters given');
-            }
-
-            $paramIdx++;
-
             if ($paramIdx === count($variables)) {
                 throw new LogicException('Not enough parameters given');
             }
+
+            $variableName = $part[0];
+            $usedParams[] = $variableName;
+
+            if (isset($variables[$variableName])) {
+                $url .= $variables[$variableName];
+                $paramIdx++;
+                continue;
+            }
+
+            if (isset($variables[$paramIdx])) {
+                $url .= $variables[$paramIdx];
+                $paramIdx++;
+                continue;
+            }
+
+            throw new LogicException('Incorrect parameters given');
         }
 
         $query = [];

@@ -16,12 +16,20 @@ class Collector extends FastRouteCollector
     /**
      * @var string
      */
-    protected $currentGroupName;
+    protected $currentGroupName = '';
 
     public function __construct(RouteParser $routeParser, DataGenerator $dataGenerator, ReverserDataGenerator $reverserDataGenerator)
     {
         parent::__construct($routeParser, $dataGenerator);
         $this->reverserDataGenerator = $reverserDataGenerator;
+    }
+
+    /**
+     * @return string
+     */
+    public function getCurrentGroupName(): string
+    {
+        return $this->currentGroupName;
     }
 
     /**
@@ -43,6 +51,7 @@ class Collector extends FastRouteCollector
             }
         }
         if ($name !== null) {
+            $name = $this->currentGroupName . $name;
             foreach ($routeDatas as $routeData) {
                 $this->reverserDataGenerator->addRoute($name, $routeData);
             }
@@ -79,4 +88,5 @@ class Collector extends FastRouteCollector
     {
         return $this->reverserDataGenerator->getData();
     }
+
 }

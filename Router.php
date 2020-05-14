@@ -10,7 +10,6 @@ use Phact\Router\ReverserDataGenerator\Std;
 use Psr\SimpleCache\InvalidArgumentException;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\{MiddlewareInterface, RequestHandlerInterface};
-use Psr\Container\ContainerInterface;
 
 class Router implements
     MiddlewareInterface,
@@ -124,7 +123,7 @@ class Router implements
     public function map($httpMethod, $route, $handler, ?string $name = null, array $middlewares = []): void
     {
         $middlewares = array_merge($this->currentMiddlewares, $middlewares);
-        $routeHandler = $this->createRoute($handler, $name, $middlewares);
+        $routeHandler = $this->createRoute($handler, $this->collector->getCurrentGroupName() . $name, $middlewares);
         $this->collector->map($httpMethod, $route, $routeHandler, $name);
         $this->setIsDirty();
     }
@@ -148,7 +147,7 @@ class Router implements
      * @param string|null $name
      * @return RouterHandler
      */
-    public function createRoute($handler, ?string $name = null, array $middlewares = []): RouterHandler
+    protected function createRoute($handler, ?string $name = null, array $middlewares = []): RouterHandler
     {
         if ($handler instanceof RouterHandler) {
             return $handler;
@@ -184,8 +183,7 @@ class Router implements
     }
 
     /**
-     *
-     * @throws InvalidArgumentException
+     * Load data from cache or loader
      */
     protected function loadData(): void
     {
@@ -233,7 +231,6 @@ class Router implements
      *
      * @param $dispatcherData
      * @param $reverserData
-     * @throws InvalidArgumentException
      */
     protected function cacheData($dispatcherData, $reverserData): void
     {
@@ -262,6 +259,7 @@ class Router implements
 
     /**
      * @return Reverser
+     * @throws InvalidArgumentException
      */
     public function getReverser(): Reverser
     {
@@ -271,6 +269,7 @@ class Router implements
 
     /**
      * @return Dispatcher
+     * @throws InvalidArgumentException
      */
     public function getDispatcher(): Dispatcher
     {
