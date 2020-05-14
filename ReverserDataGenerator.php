@@ -1,14 +1,4 @@
 <?php
-/**
- *
- *
- * All rights reserved.
- *
- * @author Okulov Anton
- * @email qantus@mail.ru
- * @version 1.0
- * @date 12/05/2020 13:21
- */
 
 namespace Phact\Router;
 

@@ -1,14 +1,4 @@
-<?php
-/**
- *
- *
- * All rights reserved.
- *
- * @author Okulov Anton
- * @email qantus@mail.ru
- * @version 1.0
- * @date 12/05/2020 16:49
- */
+<?php declare(strict_types=1);
 
 namespace Phact\Router\Invoker;
 

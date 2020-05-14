@@ -1,14 +1,4 @@
 <?php declare(strict_types=1);
-/**
- *
- *
- * All rights reserved.
- *
- * @author Okulov Anton
- * @email qantus@mail.ru
- * @version 1.0
- * @date 13/05/2020 08:39
- */
 
 namespace Phact\Router\Invoker;
 
@@ -36,7 +26,7 @@ class Std implements Invoker
     /**
      * @inheritDoc
      */
-    public function invoke(ServerRequestInterface $request, $handler, array $middlewares, array $variables): ResponseInterface
+    public function invoke(ServerRequestInterface $request, $handler, array $variables): ResponseInterface
     {
         if ($handler instanceof RequestHandlerInterface) {
             return $handler->handle($request);

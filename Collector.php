@@ -1,22 +1,12 @@
 <?php declare(strict_types=1);
-/**
- *
- *
- * All rights reserved.
- *
- * @author Okulov Anton
- * @email qantus@mail.ru
- * @version 1.0
- * @date 12/05/2020 11:30
- */
 
 namespace Phact\Router;
 
 use FastRoute\DataGenerator;
-use FastRoute\RouteCollector;
+use FastRoute\RouteCollector as FastRouteCollector;
 use FastRoute\RouteParser;
 
-class Collector extends RouteCollector
+class Collector extends FastRouteCollector
 {
     /**
      * @var ReverserDataGenerator
