@@ -18,8 +18,17 @@ class Collector extends FastRouteCollector
      */
     protected $currentGroupName = '';
 
-    public function __construct(RouteParser $routeParser, DataGenerator $dataGenerator, ReverserDataGenerator $reverserDataGenerator)
-    {
+    /**
+     * Collector constructor.
+     * @param RouteParser $routeParser
+     * @param DataGenerator $dataGenerator
+     * @param ReverserDataGenerator $reverserDataGenerator
+     */
+    public function __construct(
+        RouteParser $routeParser,
+        DataGenerator $dataGenerator,
+        ReverserDataGenerator $reverserDataGenerator
+    ) {
         parent::__construct($routeParser, $dataGenerator);
         $this->reverserDataGenerator = $reverserDataGenerator;
     }

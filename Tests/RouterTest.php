@@ -3,313 +3,527 @@
 namespace Tests;
 
 use FastRoute\Dispatcher;
+use Phact\Router\Collector;
+use Phact\Router\DispatcherFabric;
+use Phact\Router\Exception\MethodNotAllowedException;
+use Phact\Router\Invoker;
 use Phact\Router\Loader;
+use Phact\Router\Reverser;
+use Phact\Router\ReverserFabric;
 use Phact\Router\Route;
 use Phact\Router\Router;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\UriInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+use Psr\SimpleCache\CacheInterface;
 
 class RouterTest extends TestCase
 {
-    /**
-     * Assets that addRoute works correctly
-     */
-    public function testAddRoute(): void
+    public function testAddedNotNamedRouteCorrectlyProvidedToCollector(): void
     {
-        $router = new Router();
-        $router->addRoute('GET', '/example', 'someHandler', 'index');
-        $router->addRoute('GET', '/example/{id:[0-9]+}', 'someOtherHandler');
-        $router->addRoute('GET', '/example/named/{name:[0-9]+}', 'namedHandler', 'named');
-
-        $this->assertEquals([
-            Dispatcher::FOUND,
-            'someHandler',
-            []
-        ], $router->dispatch('GET', '/example'));
-
-        $this->assertEquals([
-            Dispatcher::FOUND,
-            'someOtherHandler',
-            [
-                'id' => 42
-            ]
-        ], $router->dispatch('GET', '/example/42'));
-
-        $this->assertEquals([
-            Dispatcher::METHOD_NOT_ALLOWED,
-            ['GET']
-        ], $router->dispatch('POST', '/example/42'));
-
-        $this->assertEquals([
-            Dispatcher::NOT_FOUND,
-        ], $router->dispatch('GET', '/example/another'));
-
-        $this->assertEquals('/example', $router->url('index'));
-        $this->assertEquals('/example/named/foo', $router->reverse('named', [
-            'name' => 'foo'
-        ]));
-    }
-
-    /**
-     * Assets that addGroup works correctly
-     */
-    public function testAddGroup(): void
-    {
-        $router = new Router();
-
-        $router->addGroup('/example', static function (Router $router) {
-            $router->addRoute('GET', '', 'indexHandler', 'index');
-            $router->addRoute('GET', '/all', 'allHandler', 'all');
-            $router->addGroup('/users', static function (Router $router) {
-                $router->addRoute('GET', '/{id:[0-9]+}', 'userHandler', 'user');
-            });
-        }, 'example:');
-
-        $this->assertEquals([
-            Dispatcher::FOUND,
-            'indexHandler',
-            []
-        ], $router->dispatch('GET', '/example'));
-
-        $this->assertEquals([
-            Dispatcher::FOUND,
-            'allHandler',
-            []
-        ], $router->dispatch('GET', '/example/all'));
-
-        $this->assertEquals([
-            Dispatcher::FOUND,
-            'userHandler',
-            [
-                'id' => 42
-            ]
-        ], $router->dispatch('GET', '/example/users/42'));
-
-        $this->assertEquals([
-            Dispatcher::METHOD_NOT_ALLOWED,
-            ['GET']
-        ], $router->dispatch('POST', '/example'));
-
-        $this->assertEquals([
-            Dispatcher::NOT_FOUND,
-        ], $router->dispatch('GET', '/example/another'));
-
-        $this->assertEquals('/example', $router->reverse('example:index'));
-        $this->assertEquals('/example/users/2', $router->url('example:user', [
-            'id' => 2
-        ]));
-    }
-
-    /**
-     * Assets that map works correctly
-     */
-    public function testMap(): void
-    {
-        $router = new Router();
-        $router->map('GET', '/example', 'someHandler', 'index', [
-            'firstMiddleware',
-            'secondMiddleware'
-        ]);
-        $router->map('GET', '/example/{id:[0-9]+}', 'someOtherHandler');
-        $router->map('GET', '/example/named/{name:[0-9]+}', 'namedHandler', 'named', [
-            'namedMiddleware'
-        ]);
-        $router->map('GET', '/example/excluded/{name:[0-9]+}', 'namedHandler', null, [
-            'excludedMiddleware'
-        ]);
-        $router->map('GET', '/example/custom', new Route('customHandler', null, [
-            'rewriteMiddleware'
-        ]), null, [
-            'excludedMiddleware'
-        ]);
-
-        $this->assertEquals([
-            Dispatcher::FOUND,
-            new Route(
+        $collector = $this->createMock(Collector::class);
+        $collector
+            ->expects($this->once())
+            ->method('map')
+            ->with(
+                'GET',
+                '/example',
                 'someHandler',
-                'index',
-                [
-                    'firstMiddleware',
-                    'secondMiddleware'
-                ]
-            ),
-            []
-        ], $router->dispatch('GET', '/example'));
-
-        $this->assertEquals([
-            Dispatcher::FOUND,
-            new Route(
-                'someOtherHandler',
-                null,
-                []
-            ),
-            [
-                'id' => 42
-            ]
-        ], $router->dispatch('GET', '/example/42'));
-
-        $this->assertEquals([
-            Dispatcher::FOUND,
-            new Route(
-                'customHandler',
-                null,
-                [
-                    'rewriteMiddleware'
-                ]
-            ),
-            []
-        ], $router->dispatch('GET', '/example/custom'));
-
-        $this->assertEquals([
-            Dispatcher::METHOD_NOT_ALLOWED,
-            ['GET']
-        ], $router->dispatch('POST', '/example/42'));
-
-        $this->assertEquals([
-            Dispatcher::NOT_FOUND,
-        ], $router->dispatch('GET', '/example/another'));
-
-        $this->assertEquals('/example', $router->url('index'));
-        $this->assertEquals('/example/named/foo', $router->reverse('named', [
-            'name' => 'foo'
-        ]));
+                null
+            );
+        $router = new Router($collector);
+        $router->addRoute('GET', '/example', 'someHandler');
     }
 
-    /**
-     * Assets that group works correctly
-     */
-    public function testGroup(): void
+    public function testAddedNamedRouteCorrectlyProvidedToCollector(): void
     {
-        $router = new Router();
+        $collector = $this->createMock(Collector::class);
+        $collector
+            ->expects($this->once())
+            ->method('map')
+            ->with(
+                'GET',
+                '/example',
+                'someHandler',
+                'example'
+            );
+        $router = new Router($collector);
+        $router->addRoute('GET', '/example', 'someHandler', 'example');
+    }
 
+    public function testAddedGroupCorrectlyProvidedToCollector(): void
+    {
+        $callable = static function (Router $router) {
+        };
+        $collector = $this->createMock(Collector::class);
+        $collector
+            ->expects($this->once())
+            ->method('group')
+            ->with(
+                '/example',
+                $callable,
+                'example',
+                $this->isInstanceOf(Router::class)
+            );
+        $router = new Router($collector);
+        $router->addGroup('/example', $callable, 'example');
+    }
+
+    public function testMapCorrectlyProvidedToCollector(): void
+    {
+        $collector = $this->createMock(Collector::class);
+        $collector
+            ->expects($this->once())
+            ->method('map')
+            ->with(
+                'GET',
+                '/example',
+                $this->isInstanceOf(Route::class),
+                'name'
+            );
+        $router = new Router($collector);
+        $router->map('GET', '/example', 'someHandler', 'name', ['testMiddleware']);
+    }
+
+    public function testMapCreatedRouteCorrectlyProvidedToCollector(): void
+    {
+        $collector = $this->createMock(Collector::class);
+        $collector
+            ->expects($this->once())
+            ->method('map')
+            ->with(
+                'GET',
+                '/example',
+                $this->isInstanceOf(Route::class),
+                'name'
+            );
+        $router = new Router($collector);
+        $router->map('GET', '/example', new Route('someHandler'), 'name', ['testMiddleware']);
+    }
+
+    public function testMapGroupMiddlewaresCorrectlyProvidedToRoute(): void
+    {
+        $collector = $this->createMock(Collector::class);
+        $collector
+            ->expects($this->once())
+            ->method('map')
+            ->with(
+                'GET',
+                $this->isType('string'),
+                $this->callback(function (Route $route) {
+                    $this->assertEquals([
+                        'commonMiddleware',
+                        'groupMiddleware',
+                        'mapMiddleware'
+                    ], $route->getMiddlewares());
+                    return true;
+                }),
+                $this->isType('string')
+            );
+
+        $collector
+            ->method('group')
+            ->willReturnCallback(function ($prefix, $callback, $name, $callbackScope) {
+                $callback($callbackScope);
+            });
+
+        $router = new Router($collector);
+        $router->setMiddlewares(['commonMiddleware']);
         $router->group('/example', static function (Router $router) {
-            $router->map('GET', '', 'indexHandler', 'index', [
-                'indexMiddleware'
-            ]);
-            $router->group('/users', static function (Router $router) {
-                $router->map('GET', '/{id:[0-9]+}', 'userHandler', 'user', [
-                    'userMiddleware'
-                ]);
-            }, null, [
-                'usersMiddleware'
-            ]);
-            $router->map('GET', '/all', 'allHandler', 'all', [
-                'allMiddleware'
-            ]);
-        }, 'example:', [
-            'totalMiddleware'
-        ]);
-
-        $this->assertEquals([
-            Dispatcher::FOUND,
-            new Route(
-                'indexHandler',
-                'example:index',
-                [
-                    'totalMiddleware',
-                    'indexMiddleware'
-                ]
-            ),
-            []
-        ], $router->dispatch('GET', '/example'));
-
-        $this->assertEquals([
-            Dispatcher::FOUND,
-            new Route(
-                'allHandler',
-                'example:all',
-                [
-                    'totalMiddleware',
-                    'allMiddleware'
-                ]
-            ),
-            []
-        ], $router->dispatch('GET', '/example/all'));
-
-        $this->assertEquals([
-            Dispatcher::FOUND,
-            new Route(
-                'userHandler',
-                'example:user',
-                [
-                    'totalMiddleware',
-                    'usersMiddleware',
-                    'userMiddleware'
-                ]
-            ),
-            [
-                'id' => 42
-            ]
-        ], $router->dispatch('GET', '/example/users/42'));
-
-        $this->assertEquals([
-            Dispatcher::METHOD_NOT_ALLOWED,
-            ['GET']
-        ], $router->dispatch('POST', '/example/users/42'));
-
-        $this->assertEquals([
-            Dispatcher::NOT_FOUND,
-        ], $router->dispatch('GET', '/example/another'));
-
-        $this->assertEquals('/example', $router->reverse('example:index'));
-        $this->assertEquals('/example/users/2', $router->url('example:user', [
-            'id' => 2
-        ]));
+            $router->map('GET', '/value', 'someHandler', 'name', ['mapMiddleware']);
+        }, 'example:', ['groupMiddleware']);
     }
 
-    /**
-     * Assert that common middleware applies to routes
-     */
-    public function testSetMiddlewares(): void
+    public function testGroupCorrectlyProvidedToCollector(): void
     {
-        $router = new Router();
-        $router->setMiddlewares([
-            'commonMiddleware'
-        ]);
-
-        $router->map('GET', '/example', 'indexHandler', 'index', [
-            'indexMiddleware'
-        ]);
-
-        /** @var Route $route */
-        $route = $router->dispatch('GET', '/example')[1];
-        $this->assertEquals([
-            'commonMiddleware',
-            'indexMiddleware'
-        ], $route->getMiddlewares());
+        $callable = static function (Router $router) {
+        };
+        $collector = $this->createMock(Collector::class);
+        $collector
+            ->expects($this->once())
+            ->method('group')
+            ->with(
+                '/example',
+                $callable,
+                'example',
+                $this->isInstanceOf(Router::class)
+            );
+        $router = new Router($collector);
+        $router->group('/example', $callable, 'example', ['middleware1', 'middleware2']);
     }
 
-    /**
-     * Assert that loader will not loaded if not needed
-     */
-    public function testLoaderNotLoadedIfNotNeeded(): void
+    public function testDispatchProvidedToDispatcher(): void
     {
-        $router = new Router();
+        $collector = $this->createMock(Collector::class);
+        $dispatcher = $this->createMock(Dispatcher::class);
+        $dispatcher
+            ->expects($this->once())
+            ->method('dispatch')
+            ->willReturn([]);
 
+        $dispatcherFabric = $this->createMock(DispatcherFabric::class);
+        $dispatcherFabric
+            ->expects($this->once())
+            ->method('createDispatcher')
+            ->willReturn($dispatcher);
+
+        $router = new Router($collector, $dispatcherFabric);
+        $router->dispatch('GET', '/example');
+    }
+
+    public function testDispatchWithNoChangesNotCreatesDispatcherTwice(): void
+    {
+        $collector = $this->createMock(Collector::class);
+        $dispatcher = $this->createMock(Dispatcher::class);
+        $dispatcher
+            ->expects($this->exactly(2))
+            ->method('dispatch')
+            ->willReturn([]);
+
+        $dispatcherFabric = $this->createMock(DispatcherFabric::class);
+        $dispatcherFabric
+            ->expects($this->once())
+            ->method('createDispatcher')
+            ->willReturn($dispatcher);
+
+        $router = new Router($collector, $dispatcherFabric);
+        $router->dispatch('GET', '/example');
+        $router->dispatch('GET', '/example');
+    }
+
+    public function testReverseProvidedToReverser(): void
+    {
+        $collector = $this->createMock(Collector::class);
+        $reverser = $this->createMock(Reverser::class);
+
+        $reverser
+            ->expects($this->once())
+            ->method('reverse')
+            ->willReturn('');
+
+        $reverserFabric = $this->createMock(ReverserFabric::class);
+        $reverserFabric
+            ->expects($this->once())
+            ->method('createReverser')
+            ->willReturn($reverser);
+
+        $router = new Router($collector, null, $reverserFabric);
+        $router->reverse('some_name');
+    }
+
+    public function testUrlProvidedToReverser(): void
+    {
+        $collector = $this->createMock(Collector::class);
+        $reverser = $this->createMock(Reverser::class);
+
+        $reverser
+            ->expects($this->once())
+            ->method('reverse')
+            ->willReturn('');
+
+        $reverserFabric = $this->createMock(ReverserFabric::class);
+        $reverserFabric
+            ->expects($this->once())
+            ->method('createReverser')
+            ->willReturn($reverser);
+
+        $router = new Router($collector, null, $reverserFabric);
+        $router->url('some_name');
+    }
+
+    public function testProcessOnNotDefinedDispatchWillHandleProvidedHandler(): void
+    {
+        $collector = $this->createMock(Collector::class);
+
+        $dispatcherFabric = $this->createMock(DispatcherFabric::class);
+        $dispatcherFabric
+            ->expects($this->once())
+            ->method('createDispatcher')
+            ->willReturnCallback(function () {
+                $dispatcher = $this->createMock(Dispatcher::class);
+                $dispatcher
+                    ->expects($this->once())
+                    ->method('dispatch')
+                    ->willReturn([
+                        3
+                    ]);
+                return $dispatcher;
+            });
+
+        $handler = $this->createMock(RequestHandlerInterface::class);
+        $handler
+            ->expects($this->once())
+            ->method('handle')
+            ->willReturnCallback(function () {
+                return $this->createMock(ResponseInterface::class);
+            });
+
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request
+            ->method('getMethod')
+            ->willReturn('GET');
+
+        $request
+            ->method('getUri')
+            ->willReturnCallback(function () {
+                $uri = $this->createMock(UriInterface::class);
+                $uri
+                    ->method('getPath')
+                    ->willReturn('/example');
+                return $uri;
+            });
+
+
+        $router = new Router($collector, $dispatcherFabric);
+        $router->process($request, $handler);
+    }
+
+    public function testProcessOnNotFoundDispatchWillHandleProvidedHandler(): void
+    {
+        $collector = $this->createMock(Collector::class);
+
+        $dispatcherFabric = $this->createMock(DispatcherFabric::class);
+        $dispatcherFabric
+            ->expects($this->once())
+            ->method('createDispatcher')
+            ->willReturnCallback(function () {
+                $dispatcher = $this->createMock(Dispatcher::class);
+                $dispatcher
+                    ->expects($this->once())
+                    ->method('dispatch')
+                    ->willReturn([
+                        Dispatcher::NOT_FOUND
+                    ]);
+                return $dispatcher;
+            });
+
+        $handler = $this->createMock(RequestHandlerInterface::class);
+        $handler
+            ->expects($this->once())
+            ->method('handle')
+            ->willReturnCallback(function () {
+                return $this->createMock(ResponseInterface::class);
+            });
+
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request
+            ->method('getMethod')
+            ->willReturn('GET');
+
+        $request
+            ->method('getUri')
+            ->willReturnCallback(function () {
+                $uri = $this->createMock(UriInterface::class);
+                $uri
+                    ->method('getPath')
+                    ->willReturn('/example');
+                return $uri;
+            });
+
+
+        $router = new Router($collector, $dispatcherFabric);
+        $router->process($request, $handler);
+    }
+
+    public function testProcessOnNotAllowedThrowsException(): void
+    {
+        $this->expectException(MethodNotAllowedException::class);
+
+        $collector = $this->createMock(Collector::class);
+
+        $dispatcherFabric = $this->createMock(DispatcherFabric::class);
+        $dispatcherFabric
+            ->expects($this->once())
+            ->method('createDispatcher')
+            ->willReturnCallback(function () {
+                $dispatcher = $this->createMock(Dispatcher::class);
+                $dispatcher
+                    ->expects($this->once())
+                    ->method('dispatch')
+                    ->willReturn([
+                        Dispatcher::METHOD_NOT_ALLOWED,
+                        ['PUT', 'DELETE']
+                    ]);
+                return $dispatcher;
+            });
+
+        $handler = $this->createMock(RequestHandlerInterface::class);
+        $handler
+            ->expects($this->never())
+            ->method('handle');
+
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request
+            ->method('getMethod')
+            ->willReturn('GET');
+
+        $request
+            ->method('getUri')
+            ->willReturnCallback(function () {
+                $uri = $this->createMock(UriInterface::class);
+                $uri
+                    ->method('getPath')
+                    ->willReturn('/example');
+                return $uri;
+            });
+
+        $router = new Router($collector, $dispatcherFabric);
+        $router->process($request, $handler);
+    }
+
+    public function testProcessOnFoundCallsInvokersInvoke(): void
+    {
+        $collector = $this->createMock(Collector::class);
+
+        $dispatcherFabric = $this->createMock(DispatcherFabric::class);
+        $dispatcherFabric
+            ->expects($this->once())
+            ->method('createDispatcher')
+            ->willReturnCallback(function () {
+                $dispatcher = $this->createMock(Dispatcher::class);
+                $dispatcher
+                    ->expects($this->once())
+                    ->method('dispatch')
+                    ->willReturn([
+                        Dispatcher::FOUND,
+                        'someHandler',
+                        ['param1' => 'value']
+                    ]);
+                return $dispatcher;
+            });
+
+        $handler = $this->createMock(RequestHandlerInterface::class);
+        $handler
+            ->expects($this->never())
+            ->method('handle');
+
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request
+            ->method('getMethod')
+            ->willReturn('GET');
+
+        $request
+            ->method('getUri')
+            ->willReturnCallback(function () {
+                $uri = $this->createMock(UriInterface::class);
+                $uri
+                    ->method('getPath')
+                    ->willReturn('/example');
+                return $uri;
+            });
+
+        $invoker = $this->createMock(Invoker::class);
+        $invoker
+            ->expects($this->once())
+            ->method('invoke')
+            ->with(
+                $request,
+                'someHandler',
+                ['param1' => 'value']
+            );
+
+        $router = new Router($collector, $dispatcherFabric);
+        $router->setInvoker($invoker);
+        $router->process($request, $handler);
+    }
+
+    public function testUsedLoaderIfExists(): void
+    {
         $loader = $this->createMock(Loader::class);
         $loader
-            ->expects($this->never())
+            ->expects($this->atLeast(1))
             ->method('load');
 
+        $router = new Router();
         $router->setLoader($loader);
-
-        $router->map('GET', '/example', 'handler');
+        $router->dispatch('GET', '/example');
     }
 
-    /**
-     * Assert that loader will loaded when needed
-     */
-    public function testLoaderWillLoaded(): void
+    public function testLoaderLoadedOnce(): void
     {
-        $router = new Router();
-
         $loader = $this->createMock(Loader::class);
         $loader
             ->expects($this->once())
             ->method('load');
 
+        $router = new Router();
         $router->setLoader($loader);
-
         $router->dispatch('GET', '/example');
-        $router->dispatch('GET', '/another_url');
+        $router->dispatch('POST', '/examples');
+        $router->map('GET', '/example', 'someHandler');
+        $router->dispatch('GET', '/example');
+    }
+
+    public function testUsedCacheIfExists(): void
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache
+            ->method('has')
+            ->with(
+                'routes'
+            )
+            ->willReturn(true);
+
+        $cache
+            ->expects($this->once())
+            ->method('get')
+            ->with(
+                'routes'
+            )
+            ->willReturn([
+                [[],[]],
+                []
+            ]);
+
+        $router = new Router();
+        $router->setCache($cache);
+        $router->dispatch('GET', '/example');
+    }
+
+    public function testSetToCache(): void
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache
+            ->method('has')
+            ->with(
+                'routes'
+            )
+            ->willReturn(false);
+
+        $cache
+            ->expects($this->once())
+            ->method('set');
+
+        $router = new Router();
+        $router->setCache($cache);
+        $router->dispatch('GET', '/example');
+    }
+
+    public function testCorrectlySetsNameAndTtl(): void
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache
+            ->method('has')
+            ->with(
+                'ROUTES_KEY'
+            )
+            ->willReturn(false);
+
+        $cache
+            ->expects($this->once())
+            ->method('set')
+            ->with(
+                'ROUTES_KEY',
+                $this->isType('array'),
+                1200
+            );
+
+        $router = new Router();
+        $router->setCache($cache);
+        $router->setCacheKey('ROUTES_KEY');
+        $router->setCacheTTL(1200);
+        $router->dispatch('GET', '/example');
     }
 }

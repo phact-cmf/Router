@@ -3,13 +3,19 @@
 namespace Phact\Router;
 
 use FastRoute\Dispatcher;
-use Phact\Router\Exception\{HttpException, MethodNotAllowedException};
-use Phact\Router\Invoker\{InvokerAwareInterface, InvokerAwareTrait};
-use Phact\Router\Loader\{LoaderAwareInterface, LoaderAwareTrait};
+use Phact\Router\Dispatcher\GroupCountBasedDispatcherFabric;
+use Phact\Router\Exception\HttpException;
+use Phact\Router\Exception\MethodNotAllowedException;
+use Phact\Router\Invoker\InvokerAwareInterface;
+use Phact\Router\Invoker\InvokerAwareTrait;
+use Phact\Router\Loader\LoaderAwareInterface;
+use Phact\Router\Loader\LoaderAwareTrait;
+use Phact\Router\Reverser\StdReverserFabric;
 use Phact\Router\ReverserDataGenerator\Std;
-use Psr\SimpleCache\InvalidArgumentException;
-use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
-use Psr\Http\Server\{MiddlewareInterface, RequestHandlerInterface};
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
 class Router implements
     MiddlewareInterface,
@@ -30,14 +36,14 @@ class Router implements
     protected $collector;
 
     /**
-     * @var string
+     * @var DispatcherFabric
      */
-    protected $dispatcherClass;
+    protected $dispatcherFabric;
 
     /**
-     * @var string
+     * @var ReverserFabric
      */
-    protected $reverserClass;
+    protected $reverserFabric;
 
     /**
      * @var Dispatcher
@@ -68,8 +74,11 @@ class Router implements
      */
     protected $currentMiddlewares = [];
 
-    public function __construct(?Collector $collector = null, ?string $dispatcherClass = null, ?string $reverserClass = null)
-    {
+    public function __construct(
+        ?Collector $collector = null,
+        ?DispatcherFabric $dispatcherFabric = null,
+        ?ReverserFabric $reverserFabric = null
+    ) {
         if ($collector === null) {
             $collector = new Collector(
                 new \FastRoute\RouteParser\Std(),
@@ -79,15 +88,15 @@ class Router implements
         }
         $this->collector = $collector;
 
-        if ($dispatcherClass === null) {
-            $dispatcherClass = \FastRoute\Dispatcher\GroupCountBased::class;
+        if ($dispatcherFabric === null) {
+            $dispatcherFabric = new GroupCountBasedDispatcherFabric();
         }
-        $this->dispatcherClass = $dispatcherClass;
+        $this->dispatcherFabric = $dispatcherFabric;
 
-        if ($reverserClass === null) {
-            $reverserClass = \Phact\Router\Reverser\Std::class;
+        if ($reverserFabric === null) {
+            $reverserFabric = new StdReverserFabric();
         }
-        $this->reverserClass = $reverserClass;
+        $this->reverserFabric = $reverserFabric;
     }
 
     /**
@@ -187,7 +196,7 @@ class Router implements
      */
     protected function loadData(): void
     {
-        $dispatcherData = [];
+        $dispatcherData = [[], []];
         $reverserData = [];
         $cacheRequired = true;
 
@@ -250,16 +259,12 @@ class Router implements
      */
     protected function createDispatcherAndReverser($dispatcherData, $reverserData): void
     {
-        $dispatcherClass = $this->dispatcherClass;
-        $this->dispatcher = new $dispatcherClass($dispatcherData);
-
-        $reverserClass = $this->reverserClass;
-        $this->reverser = new $reverserClass($reverserData);
+        $this->dispatcher = $this->dispatcherFabric->createDispatcher($dispatcherData);
+        $this->reverser = $this->reverserFabric->createReverser($reverserData);
     }
 
     /**
      * @return Reverser
-     * @throws InvalidArgumentException
      */
     public function getReverser(): Reverser
     {
@@ -269,7 +274,6 @@ class Router implements
 
     /**
      * @return Dispatcher
-     * @throws InvalidArgumentException
      */
     public function getDispatcher(): Dispatcher
     {
@@ -334,13 +338,12 @@ class Router implements
             case Dispatcher::NOT_FOUND:
                 break;
             case Dispatcher::METHOD_NOT_ALLOWED:
-                $allowed = (array) $match[1];
+                $allowed = (array)$match[1];
                 throw new MethodNotAllowedException($allowed);
                 break;
             case Dispatcher::FOUND:
                 $params = $match[2];
-                $this->getInvoker()->invoke($request, $match[1], $params);
-                break;
+                return $this->getInvoker()->invoke($request, $match[1], $params);
         }
 
         return $handler->handle($request);
