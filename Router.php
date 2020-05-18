@@ -327,8 +327,10 @@ class Router implements
      *
      * @throws HttpException
      */
-    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
-    {
+    public function process(
+        ServerRequestInterface $request,
+        RequestHandlerInterface $notFoundHandler
+    ): ResponseInterface {
         $httpMethod = $request->getMethod();
         $uri = $request->getUri()->getPath();
 
@@ -346,6 +348,6 @@ class Router implements
                 return $this->getInvoker()->invoke($request, $match[1], $params);
         }
 
-        return $handler->handle($request);
+        return $notFoundHandler->handle($request);
     }
 }

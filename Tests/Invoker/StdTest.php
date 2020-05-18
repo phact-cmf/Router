@@ -95,20 +95,20 @@ class StdTest extends TestCase
             ->with('simpleMiddleware')
             ->willReturn(true);
 
-         $container
-             ->expects($this->once())
-             ->method('get')
-             ->with('simpleMiddleware')
-             ->willReturnCallback(function () {
-                 $middleware = $this->createMock(MiddlewareInterface::class);
-                 $middleware
-                     ->expects($this->once())
-                     ->method('process')
-                     ->willReturn(
-                         $this->createMock(ResponseInterface::class)
-                     );
-                 return $middleware;
-             });
+        $container
+            ->expects($this->once())
+            ->method('get')
+            ->with('simpleMiddleware')
+            ->willReturnCallback(function () {
+                $middleware = $this->createMock(MiddlewareInterface::class);
+                $middleware
+                    ->expects($this->once())
+                    ->method('process')
+                    ->willReturn(
+                        $this->createMock(ResponseInterface::class)
+                    );
+                return $middleware;
+            });
 
         $invoker = new Std($container);
 

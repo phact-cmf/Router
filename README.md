@@ -74,7 +74,7 @@ $reversedRoute = $router->reverse('test_with_name', [
 ]);
 // '/test/somename?additional=variable'
 
-$response = $router->process($request, $defaultHandler);
+$response = $router->process($request, new NotFoundHandler());
 ```
 
 
