@@ -2,7 +2,6 @@
 
 namespace Phact\Router\Invoker;
 
-use http\Exception\UnexpectedValueException;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -34,7 +33,7 @@ class Next implements RequestHandlerInterface
     public function handle(ServerRequestInterface $request) : ResponseInterface
     {
         if ($this->middlewareStack === null) {
-            throw new UnexpectedValueException('Next handler already called');
+            throw new \LogicException('Next handler already called');
         }
 
         if (empty($this->middlewareStack)) {

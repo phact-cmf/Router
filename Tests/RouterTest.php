@@ -4,12 +4,12 @@ namespace Tests;
 
 use FastRoute\Dispatcher;
 use Phact\Router\Collector;
-use Phact\Router\DispatcherFabric;
+use Phact\Router\DispatcherFactory;
 use Phact\Router\Exception\MethodNotAllowedException;
 use Phact\Router\Invoker;
 use Phact\Router\Loader;
 use Phact\Router\Reverser;
-use Phact\Router\ReverserFabric;
+use Phact\Router\ReverserFactory;
 use Phact\Router\Route;
 use Phact\Router\Router;
 use PHPUnit\Framework\TestCase;
@@ -163,7 +163,7 @@ class RouterTest extends TestCase
             ->method('dispatch')
             ->willReturn([]);
 
-        $dispatcherFabric = $this->createMock(DispatcherFabric::class);
+        $dispatcherFabric = $this->createMock(DispatcherFactory::class);
         $dispatcherFabric
             ->expects($this->once())
             ->method('createDispatcher')
@@ -182,7 +182,7 @@ class RouterTest extends TestCase
             ->method('dispatch')
             ->willReturn([]);
 
-        $dispatcherFabric = $this->createMock(DispatcherFabric::class);
+        $dispatcherFabric = $this->createMock(DispatcherFactory::class);
         $dispatcherFabric
             ->expects($this->once())
             ->method('createDispatcher')
@@ -203,7 +203,7 @@ class RouterTest extends TestCase
             ->method('reverse')
             ->willReturn('');
 
-        $reverserFabric = $this->createMock(ReverserFabric::class);
+        $reverserFabric = $this->createMock(ReverserFactory::class);
         $reverserFabric
             ->expects($this->once())
             ->method('createReverser')
@@ -223,7 +223,7 @@ class RouterTest extends TestCase
             ->method('reverse')
             ->willReturn('');
 
-        $reverserFabric = $this->createMock(ReverserFabric::class);
+        $reverserFabric = $this->createMock(ReverserFactory::class);
         $reverserFabric
             ->expects($this->once())
             ->method('createReverser')
@@ -237,7 +237,7 @@ class RouterTest extends TestCase
     {
         $collector = $this->createMock(Collector::class);
 
-        $dispatcherFabric = $this->createMock(DispatcherFabric::class);
+        $dispatcherFabric = $this->createMock(DispatcherFactory::class);
         $dispatcherFabric
             ->expects($this->once())
             ->method('createDispatcher')
@@ -284,7 +284,7 @@ class RouterTest extends TestCase
     {
         $collector = $this->createMock(Collector::class);
 
-        $dispatcherFabric = $this->createMock(DispatcherFabric::class);
+        $dispatcherFabric = $this->createMock(DispatcherFactory::class);
         $dispatcherFabric
             ->expects($this->once())
             ->method('createDispatcher')
@@ -329,11 +329,9 @@ class RouterTest extends TestCase
 
     public function testProcessOnNotAllowedThrowsException(): void
     {
-        $this->expectException(MethodNotAllowedException::class);
-
         $collector = $this->createMock(Collector::class);
 
-        $dispatcherFabric = $this->createMock(DispatcherFabric::class);
+        $dispatcherFabric = $this->createMock(DispatcherFactory::class);
         $dispatcherFabric
             ->expects($this->once())
             ->method('createDispatcher')
@@ -370,14 +368,18 @@ class RouterTest extends TestCase
             });
 
         $router = new Router($collector, $dispatcherFabric);
-        $router->process($request, $handler);
+        try {
+            $router->process($request, $handler);
+        } catch (MethodNotAllowedException $exception) {
+            $this->assertEquals(405, $exception->getStatusCode());
+        }
     }
 
     public function testProcessOnFoundCallsInvokersInvoke(): void
     {
         $collector = $this->createMock(Collector::class);
 
-        $dispatcherFabric = $this->createMock(DispatcherFabric::class);
+        $dispatcherFabric = $this->createMock(DispatcherFactory::class);
         $dispatcherFabric
             ->expects($this->once())
             ->method('createDispatcher')
@@ -524,6 +526,37 @@ class RouterTest extends TestCase
         $router->setCache($cache);
         $router->setCacheKey('ROUTES_KEY');
         $router->setCacheTTL(1200);
+        $router->dispatch('GET', '/example');
+    }
+
+    public function testNotUseLoaderIfCacheExists(): void
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache
+            ->method('has')
+            ->with(
+                'routes'
+            )
+            ->willReturn(true);
+
+        $cache
+            ->expects($this->once())
+            ->method('get')
+            ->with(
+                'routes'
+            )
+            ->willReturn([
+                [[],[]],
+                []
+            ]);
+
+        $loader = $this->createMock(Loader::class);
+        $loader
+            ->expects($this->never())
+            ->method('load');
+
+        $router = new Router();
+        $router->setCache($cache);
         $router->dispatch('GET', '/example');
     }
 }

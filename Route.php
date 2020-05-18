@@ -15,7 +15,7 @@ class Route implements RouterHandler
      */
     protected $middlewares;
     /**
-     * @var string
+     * @var string|null
      */
     private $name;
 
@@ -49,7 +49,7 @@ class Route implements RouterHandler
         return $this->middlewares;
     }
 
-    public function getName(): string
+    public function getName(): ?string
     {
         return $this->name;
     }

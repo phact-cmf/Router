@@ -3,14 +3,14 @@
 namespace Phact\Router;
 
 use FastRoute\Dispatcher;
-use Phact\Router\Dispatcher\GroupCountBasedDispatcherFabric;
+use Phact\Router\Dispatcher\GroupCountBasedDispatcherFactory;
 use Phact\Router\Exception\HttpException;
 use Phact\Router\Exception\MethodNotAllowedException;
 use Phact\Router\Invoker\InvokerAwareInterface;
 use Phact\Router\Invoker\InvokerAwareTrait;
 use Phact\Router\Loader\LoaderAwareInterface;
 use Phact\Router\Loader\LoaderAwareTrait;
-use Phact\Router\Reverser\StdReverserFabric;
+use Phact\Router\Reverser\StdReverserFactory;
 use Phact\Router\ReverserDataGenerator\Std;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -36,12 +36,12 @@ class Router implements
     protected $collector;
 
     /**
-     * @var DispatcherFabric
+     * @var DispatcherFactory
      */
     protected $dispatcherFabric;
 
     /**
-     * @var ReverserFabric
+     * @var ReverserFactory
      */
     protected $reverserFabric;
 
@@ -76,8 +76,8 @@ class Router implements
 
     public function __construct(
         ?Collector $collector = null,
-        ?DispatcherFabric $dispatcherFabric = null,
-        ?ReverserFabric $reverserFabric = null
+        ?DispatcherFactory $dispatcherFabric = null,
+        ?ReverserFactory $reverserFabric = null
     ) {
         if ($collector === null) {
             $collector = new Collector(
@@ -89,12 +89,12 @@ class Router implements
         $this->collector = $collector;
 
         if ($dispatcherFabric === null) {
-            $dispatcherFabric = new GroupCountBasedDispatcherFabric();
+            $dispatcherFabric = new GroupCountBasedDispatcherFactory();
         }
         $this->dispatcherFabric = $dispatcherFabric;
 
         if ($reverserFabric === null) {
-            $reverserFabric = new StdReverserFabric();
+            $reverserFabric = new StdReverserFactory();
         }
         $this->reverserFabric = $reverserFabric;
     }

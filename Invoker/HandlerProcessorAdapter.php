@@ -6,7 +6,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
-class OriginalHandler implements RequestHandlerInterface
+class HandlerProcessorAdapter implements RequestHandlerInterface
 {
     /**
      * @var HandlerProcessorInterface

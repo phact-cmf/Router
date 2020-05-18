@@ -11,7 +11,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
-class Std implements Invoker
+class Std implements Invoker, HandlerProcessorInterface
 {
     /**
      * @var ContainerInterface|null
@@ -40,13 +40,13 @@ class Std implements Invoker
             if ($handler->getName()) {
                 $request = $request->withAttribute('router:name', $handler->getName());
             }
-            $requestHandler = $this->processHandler($request, $handler->getOriginalHandler(), $variables);
+            $requestHandler = new HandlerProcessorAdapter($this, $handler->getOriginalHandler(), $variables);
             return (new Next($requestHandler, $middlewaresResolved))->handle($request);
         }
-        return $this->processHandler($request, $handler, $variables)->handle($request);
+        return $this->processHandler($request, $handler, $variables);
     }
 
-    public function processHandler(ServerRequestInterface $request, $handler, array $variables): RequestHandlerInterface
+    public function processHandler(ServerRequestInterface $request, $handler, array $variables): ResponseInterface
     {
         $controller = $this->getCallable($handler);
         return $controller($request, $variables);

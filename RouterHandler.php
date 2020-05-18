@@ -16,9 +16,9 @@ interface RouterHandler
     /**
      * Route name
      *
-     * @return string
+     * @return string|null
      */
-    public function getName(): string;
+    public function getName(): ?string;
 
     /**
      * Return original handler

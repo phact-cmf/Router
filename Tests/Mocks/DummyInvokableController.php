@@ -2,12 +2,12 @@
 
 namespace Tests\Mocks;
 
-use Mocks\EmptyResponse;
+use Tests\Mocks\DummyResponse;
 
-class InvokableController
+class DummyInvokableController
 {
     public function __invoke()
     {
-        return new EmptyResponse();
+        return new DummyResponse();
     }
 }

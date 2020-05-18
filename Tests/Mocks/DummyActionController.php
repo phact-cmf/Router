@@ -2,13 +2,13 @@
 
 namespace Tests\Mocks;
 
-use Mocks\EmptyResponse;
+use Tests\Mocks\DummyResponse;
 use Psr\Http\Message\ResponseInterface;
 
-class ActionController
+class DummyActionController
 {
     public function action(): ResponseInterface
     {
-        return new EmptyResponse();
+        return new DummyResponse();
     }
 }

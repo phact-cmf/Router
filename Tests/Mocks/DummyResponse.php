@@ -1,11 +1,11 @@
 <?php declare(strict_types=1);
 
-namespace Mocks;
+namespace Tests\Mocks;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 
-class EmptyResponse implements ResponseInterface
+class DummyResponse implements ResponseInterface
 {
     public function getProtocolVersion()
     {

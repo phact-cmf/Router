@@ -2,7 +2,7 @@
 
 namespace Phact\Router;
 
-interface ReverserFabric
+interface ReverserFactory
 {
     public function createReverser($data): Reverser;
 }

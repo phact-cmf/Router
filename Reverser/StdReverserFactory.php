@@ -3,9 +3,9 @@
 namespace Phact\Router\Reverser;
 
 use Phact\Router\Reverser;
-use Phact\Router\ReverserFabric;
+use Phact\Router\ReverserFactory;
 
-class StdReverserFabric implements ReverserFabric
+class StdReverserFactory implements ReverserFactory
 {
     public function createReverser($data): Reverser
     {

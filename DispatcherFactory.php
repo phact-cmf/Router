@@ -4,7 +4,7 @@ namespace Phact\Router;
 
 use FastRoute\Dispatcher;
 
-interface DispatcherFabric
+interface DispatcherFactory
 {
     public function createDispatcher($data): Dispatcher;
 }

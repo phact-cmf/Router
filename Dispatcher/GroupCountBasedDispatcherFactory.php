@@ -3,9 +3,9 @@
 namespace Phact\Router\Dispatcher;
 
 use FastRoute\Dispatcher;
-use Phact\Router\DispatcherFabric;
+use Phact\Router\DispatcherFactory;
 
-class GroupCountBasedDispatcherFabric implements DispatcherFabric
+class GroupCountBasedDispatcherFactory implements DispatcherFactory
 {
     public function createDispatcher($data): Dispatcher
     {
