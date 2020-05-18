@@ -358,7 +358,6 @@ class StdTest extends TestCase
 
     public function testExceptionOnIncorrectMiddleware(): void
     {
-
         $this->expectException(InvalidArgumentException::class);
 
         $invoker = new Std();
@@ -387,14 +386,53 @@ class StdTest extends TestCase
         );
     }
 
-    /**
-     * Проверяем:
-     * + Что в итоговый хэндлер приходят корректный request и корректные variables
-     * + Использование контейнера при ресолве Middleware
-     * + Использование контейнера при ресолве Класса
-     * + Корректную отработку если вызов не с RouterHandler
-     * Все типы хэндлера
-     * Все типы мидлваров
-     * Правильную последовательность вызова Middleware
-     */
+    public function testMiddlewaresProcessInRightOrder(): void
+    {
+        $counter = new class {
+            public $count = 0;
+        };
+
+        $middleware1 = new class implements MiddlewareInterface {
+            public $count;
+
+            public $counter;
+
+            public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+            {
+                $this->count = $this->counter->count++;
+                return $handler->handle($request);
+            }
+        };
+        $middleware1->counter = $counter;
+        $middleware2 = clone($middleware1);
+
+        $invoker = new Std();
+
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request
+            ->method('withAttribute')
+            ->willReturn(
+                $this->returnSelf()
+            );
+
+        $emptyHandler = function (ServerRequestInterface $request) {
+            return $this->createMock(ResponseInterface::class);
+        };
+
+        $invoker->invoke(
+            $request,
+            new Route(
+                $emptyHandler,
+                'someName',
+                [
+                    $middleware1,
+                    $middleware2
+                ]
+            ),
+            []
+        );
+
+        $this->assertEquals(0, $middleware1->count);
+        $this->assertEquals(1, $middleware2->count);
+    }
 }

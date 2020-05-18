@@ -28,8 +28,5 @@
     "exclude-from-classmap": [
       "/Tests/"
     ]
-  },
-  "autoload-dev": {
-    "psr-4": { "Tests\\": "Tests/" }
   }
 }
