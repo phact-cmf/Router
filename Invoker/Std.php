@@ -81,7 +81,7 @@ class Std implements Invoker, HandlerProcessorInterface
      *
      * @param string $callable
      *
-     * @return callable|object|array
+     * @return callable|object|array|string
      */
     public function getCallableFromString(string $callable)
     {
@@ -99,9 +99,9 @@ class Std implements Invoker, HandlerProcessorInterface
      *
      * @param array $callable
      *
-     * @return callable
+     * @return callable|array
      */
-    public function getCallableFromArray(array $callable): callable
+    public function getCallableFromArray(array $callable)
     {
         if (!isset($callable[0])) {
             return $callable;
@@ -155,7 +155,7 @@ class Std implements Invoker, HandlerProcessorInterface
      *
      * @param MiddlewareInterface|string $middleware
      *
-     * @return MiddlewareInterface
+     * @return MiddlewareInterface|string
      */
     protected function resolveMiddlewareWithoutContainer($middleware)
     {
@@ -170,7 +170,7 @@ class Std implements Invoker, HandlerProcessorInterface
      *
      * @param MiddlewareInterface|string $middleware
      *
-     * @return MiddlewareInterface
+     * @return MiddlewareInterface|string
      */
     protected function resolveMiddlewareWithContainer($middleware)
     {

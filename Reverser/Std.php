@@ -33,7 +33,7 @@ class Std implements Reverser
         $route = $this->routes[$routeName];
 
         $url = '';
-        $counter = -1;
+        $counter = 0;
         $usedParams = [];
         foreach ($route as $part) {
             if (is_string($part)) {
@@ -47,19 +47,9 @@ class Std implements Reverser
 
             $variableName = $part[0];
             $usedParams[] = $variableName;
+
+            $url .= $this->retrieveVariable($variables, $counter, $variableName);
             $counter++;
-
-            if (isset($variables[$variableName])) {
-                $url .= $variables[$variableName];
-                continue;
-            }
-
-            if (isset($variables[$counter])) {
-                $url .= $variables[$counter];
-                continue;
-            }
-
-            throw new LogicException('Incorrect parameters given');
         }
 
         $query = $this->buildQuery($variables, $usedParams);
@@ -69,6 +59,28 @@ class Std implements Reverser
     }
 
     /**
+     * Get variables from variables by name or by index
+     *
+     * @param array $variables
+     * @param int $index
+     * @param string $variableName
+     * @return string
+     */
+    public function retrieveVariable(array $variables, int $index, string $variableName): string
+    {
+        if (isset($variables[$variableName])) {
+            return $variables[$variableName];
+        }
+
+        if (isset($variables[$index])) {
+            return $variables[$index];
+        }
+        throw new LogicException('Incorrect parameters given');
+    }
+
+    /**
+     * Check that route with given name exists
+     *
      * @param string $routeName
      */
     public function hasRouteCheck(string $routeName): void

@@ -211,9 +211,8 @@ class Router implements
         // If not loaded
         if (!$this->isLoaded) {
             // If loader exists, load data with loader
-            if ($this->loader) {
-                $this->loader->load($this);
-            }
+            $this->loadDataFromLoader();
+
             // Extract data from collector
             $dispatcherData = $this->getCollector()->getData();
             $reverserData = $this->getCollector()->getReverserData();
@@ -233,6 +232,16 @@ class Router implements
         $this->createDispatcherAndReverser($dispatcherData, $reverserData);
 
         $this->isDirty = false;
+    }
+
+    /**
+     * Load data from loader
+     */
+    protected function loadDataFromLoader(): void
+    {
+        if ($this->loader) {
+            $this->loader->load($this);
+        }
     }
 
     /**

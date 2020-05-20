@@ -251,6 +251,56 @@ class StdTest extends TestCase
         $this->assertInstanceOf(DummyResponse::class, $response);
     }
 
+    public function testIncorrectArrayHandler(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        $handler = [123];
+
+        $invoker = new Std();
+
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request
+            ->method('withAttribute')
+            ->willReturn(
+                $this->returnSelf()
+            );
+
+        $response = $invoker->invoke(
+            $request,
+            new Route(
+                $handler
+            ),
+            []
+        );
+        $this->assertInstanceOf(DummyResponse::class, $response);
+    }
+
+    public function testEmptyArrayHandler(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        $handler = [];
+
+        $invoker = new Std();
+
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request
+            ->method('withAttribute')
+            ->willReturn(
+                $this->returnSelf()
+            );
+
+        $response = $invoker->invoke(
+            $request,
+            new Route(
+                $handler
+            ),
+            []
+        );
+        $this->assertInstanceOf(DummyResponse::class, $response);
+    }
+
     public function testInvokableClassHandler(): void
     {
         $handler = DummyInvokableController::class;
