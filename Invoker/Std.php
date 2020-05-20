@@ -121,6 +121,6 @@ class Std implements Invoker, HandlerProcessorInterface
             return $middleware;
         }
 
-        throw new InvalidArgumentException(sprintf('Could not resolve middleware class: %s', $middleware));
+        throw new InvalidArgumentException(sprintf('Could not resolve middleware class: %s', (string) $middleware));
     }
 }
