@@ -201,9 +201,8 @@ class Router implements
         $cacheRequired = true;
 
         // If data exists in cache, load it from cache
-        if (!$this->isLoaded && $this->cache && $this->cache->has($this->cacheKey)) {
-            // Extract data from cache
-            [$dispatcherData, $reverserData] = $this->cache->get($this->cacheKey);
+        if (!$this->isLoaded && ($data = $this->fetchDataFromCache())) {
+            [$dispatcherData, $reverserData] = $data;
             $this->isLoaded = true;
             $cacheRequired = false;
         }
@@ -212,7 +211,6 @@ class Router implements
         if (!$this->isLoaded) {
             // If loader exists, load data with loader
             $this->loadDataFromLoader();
-
             // Extract data from collector
             $dispatcherData = $this->getCollector()->getData();
             $reverserData = $this->getCollector()->getReverserData();
@@ -242,6 +240,18 @@ class Router implements
         if ($this->loader) {
             $this->loader->load($this);
         }
+    }
+
+    /**
+     * Load data from loader
+     */
+    protected function fetchDataFromCache(): ?array
+    {
+        if ($this->cache && $this->cache->has($this->cacheKey)) {
+            // Extract data from cache
+            return $this->cache->get($this->cacheKey);
+        }
+        return null;
     }
 
     /**
