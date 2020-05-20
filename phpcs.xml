@@ -4,9 +4,8 @@
     <rule ref="PSR2">
         <exclude name="PSR2.Namespaces.UseDeclaration"/>
     </rule>
-    <file>src/</file>
-    <file>tests/</file>
+    <file>.</file>
+    <file>Tests/</file>
     <exclude-pattern>*/vendor/*</exclude-pattern>
-    <exclude-pattern>*.js</exclude-pattern>
-    <exclude-pattern>*.css</exclude-pattern>
+    <exclude-pattern>*/build/*</exclude-pattern>
 </ruleset>

@@ -97,5 +97,4 @@ class Collector extends FastRouteCollector
     {
         return $this->reverserDataGenerator->getData();
     }
-
 }

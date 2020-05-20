@@ -397,8 +397,10 @@ class StdTest extends TestCase
 
             public $counter;
 
-            public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
-            {
+            public function process(
+                ServerRequestInterface $request,
+                RequestHandlerInterface $handler
+            ): ResponseInterface {
                 $this->count = $this->counter->count++;
                 return $handler->handle($request);
             }
