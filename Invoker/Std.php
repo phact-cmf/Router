@@ -61,26 +61,57 @@ class Std implements Invoker, HandlerProcessorInterface
      */
     public function getCallable($callable)
     {
-        if (is_string($callable) && strpos($callable, '::') !== false) {
-            $callable = explode('::', $callable);
+        if (is_string($callable)) {
+            $callable = $this->getCallableFromString($callable);
         }
 
-        if (is_array($callable) && isset($callable[0]) && is_object($callable[0])) {
-            $callable = [$callable[0], $callable[1]];
-        }
-
-        if (is_array($callable) && isset($callable[0]) && is_string($callable[0])) {
-            $callable = [$this->resolveClass($callable[0]), $callable[1]];
-        }
-
-        if (is_string($callable) && method_exists($callable, '__invoke')) {
-            $callable = $this->resolveClass($callable);
+        if (is_array($callable)) {
+            $callable = $this->getCallableFromArray($callable);
         }
 
         if (!is_callable($callable)) {
             throw new InvalidArgumentException('Could not resolve a callable for this route');
         }
 
+        return $callable;
+    }
+
+    /**
+     * Get callable from string
+     *
+     * @param string $callable
+     *
+     * @return callable|object|array
+     */
+    public function getCallableFromString(string $callable)
+    {
+        if (strpos($callable, '::') !== false) {
+            return explode('::', $callable);
+        }
+        if (method_exists($callable, '__invoke')) {
+            return $this->resolveClass($callable);
+        }
+        return $callable;
+    }
+
+    /**
+     * Get callable from string
+     *
+     * @param array $callable
+     *
+     * @return callable
+     */
+    public function getCallableFromArray(array $callable): callable
+    {
+        if (!isset($callable[0])) {
+            return $callable;
+        }
+        if (is_object($callable[0])) {
+            return [$callable[0], $callable[1]];
+        }
+        if (is_string($callable[0])) {
+            return [$this->resolveClass($callable[0]), $callable[1]];
+        }
         return $callable;
     }
 
@@ -109,18 +140,43 @@ class Std implements Invoker, HandlerProcessorInterface
      */
     protected function resolveMiddleware($middleware): MiddlewareInterface
     {
-        if ($this->container === null && is_string($middleware) && class_exists($middleware)) {
-            $middleware = new $middleware;
-        }
-
-        if ($this->container !== null && is_string($middleware) && $this->container->has($middleware)) {
-            $middleware = $this->container->get($middleware);
-        }
+        $middleware = $this->resolveMiddlewareWithContainer($middleware);
+        $middleware = $this->resolveMiddlewareWithoutContainer($middleware);
 
         if ($middleware instanceof MiddlewareInterface) {
             return $middleware;
         }
 
         throw new InvalidArgumentException(sprintf('Could not resolve middleware class: %s', (string) $middleware));
+    }
+
+    /**
+     * Resolve middleware without container
+     *
+     * @param MiddlewareInterface|string $middleware
+     *
+     * @return MiddlewareInterface
+     */
+    protected function resolveMiddlewareWithoutContainer($middleware)
+    {
+        if ($this->container === null && is_string($middleware) && class_exists($middleware)) {
+            $middleware = new $middleware;
+        }
+        return $middleware;
+    }
+
+    /**
+     * Resolve middleware with container
+     *
+     * @param MiddlewareInterface|string $middleware
+     *
+     * @return MiddlewareInterface
+     */
+    protected function resolveMiddlewareWithContainer($middleware)
+    {
+        if ($this->container !== null && is_string($middleware) && $this->container->has($middleware)) {
+            $middleware = $this->container->get($middleware);
+        }
+        return $middleware;
     }
 }

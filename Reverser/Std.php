@@ -28,17 +28,12 @@ class Std implements Reverser
      */
     public function reverse(string $routeName, array $variables = []): string
     {
-        if (!isset($this->routes[$routeName])) {
-            throw new BadRouteException(sprintf(
-                'Could not find route with name "%s"',
-                $routeName
-            ));
-        }
+        $this->hasRouteCheck($routeName);
 
         $route = $this->routes[$routeName];
 
         $url = '';
-        $paramIdx = 0;
+        $counter = -1;
         $usedParams = [];
         foreach ($route as $part) {
             if (is_string($part)) {
@@ -46,34 +41,64 @@ class Std implements Reverser
                 continue;
             }
 
-            if ($paramIdx === count($variables)) {
+            if ($counter === count($variables)) {
                 throw new LogicException('Not enough parameters given');
             }
 
             $variableName = $part[0];
             $usedParams[] = $variableName;
+            $counter++;
 
             if (isset($variables[$variableName])) {
                 $url .= $variables[$variableName];
-                $paramIdx++;
                 continue;
             }
 
-            if (isset($variables[$paramIdx])) {
-                $url .= $variables[$paramIdx];
-                $paramIdx++;
+            if (isset($variables[$counter])) {
+                $url .= $variables[$counter];
                 continue;
             }
 
             throw new LogicException('Incorrect parameters given');
         }
 
+        $query = $this->buildQuery($variables, $usedParams);
+        $query = $query ? '?' . $query : '';
+
+        return $url . $query;
+    }
+
+    /**
+     * @param string $routeName
+     */
+    public function hasRouteCheck(string $routeName): void
+    {
+        if (!isset($this->routes[$routeName])) {
+            throw new BadRouteException(sprintf(
+                'Could not find route with name "%s"',
+                $routeName
+            ));
+        }
+    }
+
+    /**
+     * Build query string from unused params
+     *
+     * @param array $variables
+     * @param array $usedParams
+     * @return string
+     */
+    protected function buildQuery(array $variables, array $usedParams): string
+    {
         $query = [];
         foreach ($variables as $param => $value) {
             if (is_string($param) && !in_array($param, $usedParams)) {
                 $query[$param] = $value;
             }
         }
-        return $url . ($query ? '?' . http_build_query($query) : '');
+        if (!$query) {
+            return '';
+        }
+        return http_build_query($query);
     }
 }
