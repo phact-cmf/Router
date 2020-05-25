@@ -31,7 +31,7 @@ $router = new Router();
 
 ### Добавление роута, группы роутов
 
-```
+```php
 // Добавление роута
 $router->addRoute('GET', '/test', function () {
     // Это обработчик роута
@@ -92,7 +92,7 @@ $router = new Router();
 ### Добавление роутов, групп роутов
 
 Простое добавление роутов.
-Виды возможных обработчиков ограничены (виды поддерживаемых обработчиков есть далее в документации).
+Виды возможных обработчиков ограничены. [Поддерживаемые виды обработчиков](#поддерживаемые-виды-обработчиков).
 
 ```php
 $router->map('GET', '/test/{name:[a-z]+}', function () {
@@ -100,7 +100,7 @@ $router->map('GET', '/test/{name:[a-z]+}', function () {
 }, 'test_with_name');
 ```
 
-Конечно же, можно использовать и Middleware (виды поддерживаемых Middleware есть далее в документации).
+Конечно же, можно использовать и Middleware. [Поддерживаемые виды Middleware](#поддерживаемые-виды-Middleware).
 
 ```php
 $router->map('POST', '/admin', function () {
@@ -127,7 +127,7 @@ $router->group('GET', '/api', function (Router $router) {
 
 Можно установить список Middleware, которые будут применены ко всем роутам.
 
-```
+```php
 $router->setMiddlewares([
     MyCustomMiddleware::class
 ]);
@@ -152,14 +152,14 @@ $response = $router->process($request, new NotFoundHandler());
 Если мы добавляем роут с именем, то затем можно построить url по этому имени с переданными параметрами.
 Например, добавим роут:
 
-```
+```php
 // Добавление роута с именем
 $router->addRoute('GET', '/test/{name:[a-z]+}', 'someHandler', 'test_with_name');
 ```
 
 Затем, можно сгенерировать url следующим образом:
 
-```
+```php
 $router->reverse('test_with_name', [
     'name' => 'harry'
 ])
@@ -172,14 +172,14 @@ $router->reverse('test_with_name', [
 Передаваемые параметры могут быть расположены простым (не ассоциативным массивом). 
 В этом случае подстановка параметров будет произведена по порядку. Например, добавим вот такой роут:
 
-```
+```php
 // Добавление роута с двумя параметрами
 $router->addRoute('GET', '/test/{name:[a-z]+}/{id:[0-9]+}', 'someHandler', 'test_double');
 ```
 
 И для генерации url передадим не ассоциативный массив:
 
-```
+```php
 $router->reverse('test_with_name', [
     'harry',
     12
@@ -195,14 +195,14 @@ $router->reverse('test_with_name', [
 
 Для примера определим роут:
 
-```
+```php
 // Добавление роута с именем
 $router->addRoute('GET', '/test/{name:[a-z]+}', 'someHandler', 'test_with_name');
 ```
 
 И сгенерируем url вот так:
 
-```
+```php
 $router->reverse('test_with_name', [
     'name' => 'harry',
     'faculty' => 'gryffindor'
@@ -243,7 +243,7 @@ $router = new Router(null, null, new MyAmazingReverserFactory());
 $router->addRoute('GET', '/test', '\App\Handlers\MyHandler::myMethod', 'test');
 ```
 
-Если установлен Container, то объект будет запрошен у Container. @TODO ссылка на работу с контейнером
+Если установлен Container, то объект будет запрошен у [Container](#container).
 Если Container не установлен, то объект будет создан.
 
 ### Строка - класс, у которого определен метод
@@ -254,7 +254,7 @@ $router->addRoute('GET', '/test', '\App\Handlers\MyHandler::myMethod', 'test');
 $router->addRoute('GET', '/test', MyInvokableHandler::class, 'test');
 ```
 
-Если установлен Container, то объект будет запрошен у Container. @TODO ссылка на работу с контейнером
+Если установлен Container, то объект будет запрошен у [Container](#container).
 Если Container не установлен, то объект будет создан.
 
 ### Массив - класс и имя метода
@@ -265,7 +265,7 @@ $router->addRoute('GET', '/test', MyInvokableHandler::class, 'test');
 $router->addRoute('GET', '/test', [MyHandler::class, 'myMethod'], 'test');
 ```
 
-Если установлен Container, то объект будет запрошен у Container. @TODO ссылка на работу с контейнером
+Если установлен Container, то объект будет запрошен у [Container](#container).
 Если Container не установлен, то объект будет создан.
 
 
@@ -312,7 +312,7 @@ $router->map('POST', '/admin', new MyInvokableHandler(), 'admin', [
 ]);
 ```
 
-Если установлен Container, то объект будет запрошен у [Container](). @TODO ссылка на работу с контейнером
+Если установлен Container, то объект будет запрошен у [Container](#container).
 Если Container не установлен, то объект будет создан.
 
 ### Объект
@@ -400,7 +400,7 @@ $router->setCache($myCache);
 По-умолчанию Router использует GroupCountBased стратегию обработки.
 Любую другую стратегию можно реализовать по аналогии со стратегий по-умолчанию.
 
-```
+```php
 $route = new Router(
     new Collector(
         new MyCustomRouteParser(),
@@ -409,5 +409,5 @@ $route = new Router(
     ),
     new MyCustomDispatcherFactory(),
     new MyCustomReverserFactory()
-)
+);
 ```
