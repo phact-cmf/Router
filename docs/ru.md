@@ -87,15 +87,6 @@ $router->addGroup('GET', '/api', function (Router $router) {
 $reversedRoute = $router->reverse('test_with_name', [
     'name' => 'somename'
 ]);
-
-$reversedRoute = $router->reverse('test_with_name', [
-    'name' => 'somename',
-    'additional' => 'variable'
-]);
-// '/test/somename?additional=variable'
-
-// Just like with FastRoute
-
 ```
 
 ### Получение данных роута
@@ -136,7 +127,7 @@ $router->map('GET', '/test/{name:[a-z]+}', function () {
 }, 'test_with_name');
 ```
 
-Конечно же, можно использовать и Middleware. [Поддерживаемые виды Middleware](#поддерживаемые-виды-Middleware).
+Конечно же, можно использовать и Middleware. [Поддерживаемые виды Middleware](#поддерживаемые-виды-middleware).
 
 ```php
 $router->map('POST', '/admin', function () {
@@ -196,33 +187,32 @@ $router->addRoute('GET', '/test/{name:[a-z]+}', 'someHandler', 'test_with_name')
 Затем можно сгенерировать URL следующим образом:
 
 ```php
-$router->reverse('test_with_name', [
+$url = $router->reverse('test_with_name', [
     'name' => 'harry'
-])
+]);
 ```
 
 В ответе мы получим ```/test/harry```
 
 ### Простой массив в качестве параметров URL
 
-Передаваемые параметры могут быть расположены простым (не ассоциативным массивом). 
+Передаваемые параметры могут быть простым (не ассоциативным) массивом. 
 В этом случае подстановка параметров будет произведена по порядку. Например, добавим вот такой роут:
 
 ```php
-// Добавление роута с двумя параметрами
 $router->addRoute('GET', '/test/{name:[a-z]+}/{id:[0-9]+}', 'someHandler', 'test_double');
 ```
 
 И для генерации URL передадим не ассоциативный массив:
 
 ```php
-$router->reverse('test_with_name', [
+$url = $router->reverse('test_with_name', [
     'harry',
     12
-])
+]);
 ```
 
-В ответе мы получим ```/test/harry/12```
+В ответе мы получим ```/test/harry/12```.
 
 ### Генерация параметров запроса из неиспользованных параметров
 
@@ -399,7 +389,7 @@ $router->setContainer($myContainer);
 
 > По умолчанию Router не использует никакой Loader.
 
-Вы можете реализовать свой объект для загрузки роутов из вашего хранилища (файла, базы данных ...). 
+Вы можете реализовать свой класс для загрузки роутов из вашего хранилища (файла, базы данных ...). 
 
 Для этого:
 - опишите свой Loader, имплементируя интерфейс ```\Phact\Router\Loader```
@@ -410,6 +400,7 @@ $router->setLoader($myCustomLoader);
 ```
 
 Метод ```load``` будет вызван в момент первого ```dispatch``` или ```reverse```.
+
 Метод ```load``` может быть не вызван в случае [использования Cache](#cache).
 
 ## Cache
