@@ -4,6 +4,12 @@ namespace Phact\Router\Exception;
 
 use Throwable;
 
+/**
+ * Default HTTP exception
+ *
+ * Class HttpException
+ * @package Phact\Router\Exception
+ */
 abstract class HttpException extends \Exception
 {
     /**
@@ -18,6 +24,8 @@ abstract class HttpException extends \Exception
     }
 
     /**
+     * Get HTTP status
+     *
      * @return int
      */
     public function getStatusCode(): int

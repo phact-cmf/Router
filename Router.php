@@ -165,6 +165,8 @@ class Router implements
     }
 
     /**
+     * Get Collector
+     *
      * @return Collector
      */
     public function getCollector(): Collector
@@ -173,6 +175,8 @@ class Router implements
     }
 
     /**
+     * Get Invoker
+     *
      * @return Invoker
      */
     public function getInvoker(): Invoker
@@ -301,6 +305,8 @@ class Router implements
     }
 
     /**
+     * Generate URL by name and params
+     *
      * @param string $routeName
      * @param array $variables
      * @return string
@@ -311,7 +317,7 @@ class Router implements
     }
 
     /**
-     * Alias for reverse
+     * Generate URL by name and params (alias for reverse())
      *
      * @param string $routeName
      * @param array $variables

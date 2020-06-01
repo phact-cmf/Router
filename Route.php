@@ -34,6 +34,8 @@ class Route implements RouterHandler
     }
 
     /**
+     * Get route original handler
+     *
      * @return mixed
      */
     public function getOriginalHandler()
@@ -42,6 +44,8 @@ class Route implements RouterHandler
     }
 
     /**
+     * Get route Middlewares
+     *
      * @return array
      */
     public function getMiddlewares(): array
@@ -49,6 +53,11 @@ class Route implements RouterHandler
         return $this->middlewares;
     }
 
+    /**
+     * Get route name
+     *
+     * @return string|null
+     */
     public function getName(): ?string
     {
         return $this->name;

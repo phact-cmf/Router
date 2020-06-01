@@ -7,6 +7,12 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+/**
+ * Default handler for usage with process() method of Router
+ *
+ * Class NotFoundHandler
+ * @package Phact\Router
+ */
 class NotFoundHandler implements RequestHandlerInterface
 {
     /**

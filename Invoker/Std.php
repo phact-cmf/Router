@@ -46,6 +46,9 @@ class Std implements Invoker, HandlerProcessorInterface
         return $this->processHandler($request, $handler, $variables);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function processHandler(ServerRequestInterface $request, $handler, array $variables): ResponseInterface
     {
         $controller = $this->getCallable($handler);

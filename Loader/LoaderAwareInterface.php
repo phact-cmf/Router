@@ -6,5 +6,10 @@ use Phact\Router\Loader;
 
 interface LoaderAwareInterface
 {
+    /**
+     * Set Loader
+     *
+     * @param Loader $loader
+     */
     public function setLoader(Loader $loader): void;
 }

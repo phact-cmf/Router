@@ -4,6 +4,12 @@ namespace Phact\Router\Exception;
 
 use Throwable;
 
+/**
+ * Will thrown if method not allowed for requested route
+ *
+ * Class MethodNotAllowedException
+ * @package Phact\Router\Exception
+ */
 class MethodNotAllowedException extends HttpException
 {
     public function __construct(

@@ -30,6 +30,9 @@ class Next implements RequestHandlerInterface
         $this->middlewareStack = $middlewareStack;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function handle(ServerRequestInterface $request) : ResponseInterface
     {
         if ($this->middlewareStack === null) {

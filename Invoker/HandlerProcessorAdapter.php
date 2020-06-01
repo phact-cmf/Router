@@ -26,6 +26,9 @@ class HandlerProcessorAdapter implements RequestHandlerInterface
         $this->variables = $variables;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         return $this->processor->processHandler($request, $this->originalHandler, $this->variables);
