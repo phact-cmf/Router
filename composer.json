@@ -1,5 +1,23 @@
 {
+  "name": "phact-cmf/router",
+  "description": "PSR-7, PSR-15 compatible router",
+  "keywords": ["psr7", "psr15", "router", "route", "fastroute", ""],
+  "homepage": "https://github.com/phact-cmf/Router",
   "license": "MIT",
+  "authors": [
+    {
+      "name": "Anton Okulov",
+      "email": "qantus@mail.ru",
+      "homepage": "https://github.com/AntonOkulov",
+      "role": "Developer"
+    },
+    {
+      "name": "Maxim Korobitsyn",
+      "email": "dog.mixer@gmain.com",
+      "homepage": "https://github.com/tsukasa-mixer",
+      "role": "Developer"
+    }
+  ],
   "require": {
     "php": ">=7.2",
     "nikic/fast-route": "^1.3.0",
