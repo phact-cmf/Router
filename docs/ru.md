@@ -5,10 +5,10 @@
 Использует [FastRoute](https://github.com/nikic/FastRoute), вдохновлено [league/route](https://route.thephpleague.com/).
 
 Основные идеи:
-- возможность работать как в концепциях PSR-7/PSR-15, так и вне их, используя концепцию FastRoute 
-- Reversed routing (генерация URL по имени роута)
-- практически нативный FastRoute с возможностью использовать различные стратегии обработки (CharCountBased, GroupCountBased...)
-- быстрый множественный dispatch и reverse (при остающейся возможности динамического добавления роутов)
+- возможность работать, следуя стандартам PSR-7/PSR-15, либо используя подход FastRoute 
+- reversed routing (генерация URL по имени роута)
+- практически нативный FastRoute с возможностью использования различных стратегий обработки (CharCountBased, GroupCountBased...)
+- быстрый множественный dispatch и reverse (при сохранении возможности динамического добавления роутов)
 - возможность подключить свой загрузчик роутов из любых форматов
 - возможность подключить кэш (PSR-16)
 - возможность гибко настраивать любой из компонентов роутера (заменять обработку handler, middleware)
@@ -91,7 +91,7 @@ $reversedRoute = $router->reverse('test_with_name', [
 
 ### Получение данных роута
 
-Тут всё точно так же, как в FastRoute, смотрите здесь [Basic usage FastRoute](https://github.com/nikic/FastRoute#usage)
+Аналогично FastRoute, смотрите здесь: [Basic usage FastRoute](https://github.com/nikic/FastRoute#usage)
 
 ```php
 $data = $router->dispatch('GET','/test');
@@ -138,7 +138,7 @@ $router->map('POST', '/admin', function () {
 ]);
 ```
 
-Группы тоже поддерживаются с Middleware.
+Также поддерживаются группы, для которых можно указать Middleware.
 
 ```php
 $router->group('GET', '/api', function (Router $router) {
@@ -152,7 +152,7 @@ $router->group('GET', '/api', function (Router $router) {
 
 ### Общие Middleware
 
-Можно установить список Middleware, которые будут применены ко всем роутам.
+Можно указать список Middleware, которые будут применены ко всем роутам.
 
 ```php
 $router->setMiddlewares([
@@ -216,13 +216,11 @@ $url = $router->reverse('test_with_name', [
 
 ### Генерация параметров запроса из неиспользованных параметров
 
-Интересной особенностью reverse по умолчанию является то, что неиспользованные 
-параметры будут переданы в параметры запроса.
+По умолчанию неиспользованные параметры будут переданы в параметры запроса.
 
 Для примера определим роут:
 
 ```php
-// Добавление роута с именем
 $router->addRoute('GET', '/test/{name:[a-z]+}', 'someHandler', 'test_with_name');
 ```
 
@@ -240,15 +238,15 @@ $router->reverse('test_with_name', [
 
 ### Метод URL
 
-Вместо метода ```$router->reverse(...)``` можно применять метод ```$router->url(...)``` - они являются равнозначными. 
+Вместо метода ```$router->reverse(...)``` можно применять метод ```$router->url(...)```, так как они являются равнозначными. 
 
 ### Изменение поведения reverse
 
 Если вам необходимо определить своё поведение для метода reverse, то вам необходимо:
 
 1. Реализовать ```\Phact\Router\ReverserFactory```, которая будет создавать ```\Phact\Router\Reverser```.
-2. Реализовать ваш ```\Phact\Router\Reverser```.
-3. Передать вашу ```ReverserFactory``` в конструктор Router. Например так:
+2. Реализовать ```\Phact\Router\Reverser```.
+3. Передать вашу ```ReverserFactory``` в конструктор Router. Например, так:
 
 ```php
 $router = new Router(null, null, new MyAmazingReverserFactory());
@@ -259,9 +257,9 @@ $router = new Router(null, null, new MyAmazingReverserFactory());
 > Актуально, только если вы используете PSR-7–совместимый метод работы.
 > Если вы используете роутер простейшим способом, то обработчик может быть любым.
 
-Любой из представленных обработчиков должен возвращать объект ```\Psr\Http\Message\ResponseInterface```
+Любой из представленных ниже обработчиков должен возвращать объект ```\Psr\Http\Message\ResponseInterface```
 
-### Строка - класс и метод, разделенные "::"
+### Строка, содержащая имя класса и имя метода, разделенные "::"
 
 Пример:
 
@@ -272,7 +270,7 @@ $router->addRoute('GET', '/test', '\App\Handlers\MyHandler::myMethod', 'test');
 Если установлен Container, то объект будет запрошен у [Container](#container).
 Если Container не установлен, то объект будет создан.
 
-### Строка - класс, у которого определен метод __invoke()
+### Строка, содержащая имя класса, который реализует метод __invoke()
 
 Пример:
 
@@ -283,7 +281,7 @@ $router->addRoute('GET', '/test', MyInvokableHandler::class, 'test');
 Если установлен Container, то объект будет запрошен у [Container](#container).
 Если Container не установлен, то объект будет создан.
 
-### Массив - класс и имя метода
+### Массив, содержащий имя класса и имя метода
 
 Пример:
 
@@ -294,15 +292,13 @@ $router->addRoute('GET', '/test', [MyHandler::class, 'myMethod'], 'test');
 Если установлен Container, то объект будет запрошен у [Container](#container).
 Если Container не установлен, то объект будет создан.
 
-
-### Массив - объект и имя метода
+### Массив, содержащий объект и имя метода
 
 Пример:
 
 ```php
 $router->addRoute('GET', '/test', [new MyHandler(), 'myMethod'], 'test');
 ```
-
 
 ### Callable-объект
 
@@ -384,7 +380,6 @@ $router->setContainer($myContainer);
 > Обратите внимание! Router передает Container в стандартную реализацию Invoker.
 > Если вы сами реализуете Invoker, учитывайте это.
 
-
 ## Loader
 
 > По умолчанию Router не использует никакой Loader.
@@ -424,7 +419,7 @@ $router->setCache($myCache);
 - ReverserDataGenerator и Reverser (через ReverserFactory)
 - RouteParser
 
-По умолчанию Router использует GroupCountBased стратегию обработки.
+По умолчанию Router использует стратегию обработки GroupCountBased.
 Любую другую стратегию можно реализовать по аналогии со стратегий по умолчанию.
 
 ```php

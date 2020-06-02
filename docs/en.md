@@ -5,13 +5,13 @@ Follows PSR-7, PSR-15, and PSR-1, PSR-2, PSR-4, PSR-11, PSR-16.
 Based on [FastRoute](https://github.com/nikic/FastRoute), inspired by [league/route](https://route.thephpleague.com/).
 
 Main ideas:
-- Follow PSR-7/PSR-15 conception or not
-- Reversed routing (URL generation by route name)
-- Almost native [FastRoute](https://github.com/nikic/FastRoute), you can use various processing strategies (CharCountBased, GroupCountBased...)
-- Fast, multiple dispatch and reverse (with dynamically adding routes opportunity)
-- Allows using custom Loader (allows load routes from different formats, files, etc.)
-- Allows caching (PSR-16)
-- Flexible (you can replace any component: Invoker, Dispatcher, Reverser, etc.)
+- follow PSR-7/PSR-15 or using FastRoute approach
+- reversed routing (URL generation by route name)
+- almost native [FastRoute](https://github.com/nikic/FastRoute) with possibility of using various processing strategies (CharCountBased, GroupCountBased...)
+- fast multiple dispatch and reverse (with ability to add routes dynamically)
+- allows using custom Loader (allows to load routes from different formats, files, etc.)
+- allows caching (PSR-16)
+- flexible (you can replace any component: Invoker, Dispatcher, Reverser, etc.)
 
 ## Оглавление
 
@@ -48,7 +48,7 @@ Main ideas:
 
 ## Usage without PSR-7/15 compatibility
 
-Just like in [FastRoute](https://github.com/nikic/FastRoute), 
+Almost like [FastRoute](https://github.com/nikic/FastRoute), 
 but with [reversed routing](#url-reverse---генерация-url).
 
 ### Create Router
@@ -59,9 +59,9 @@ As simple as possible
 $router = new Router();
 ```
 
-See other documentation section if you need:
-- cache usage
-- Loader usage
+See other documentation sections if you need to:
+- use cache
+- use Loader
 - change FastRoute strategy
 - change reverse logic
 
@@ -73,7 +73,7 @@ $router->addRoute('GET', '/test', function () {
     // Route handler
 }, 'test');
 
-// Route with name
+// Add route with name
 $router->addRoute('GET', '/test/{name:[a-z]+}', function () {
     // Handler for route with name
 }, 'test_with_name');
@@ -99,9 +99,9 @@ $data = $router->dispatch('GET','/test');
 
 ## Usage with PSR-7/15 compatibility
 
-Router implements MiddlewareInterface, therefore easily integrates into any pipelines
+Router implements MiddlewareInterface, therefore it integrates into any Pipelines easily
 
-### Создание
+### Creating
 
 As simple as possible
  
@@ -109,9 +109,9 @@ As simple as possible
 $router = new Router();
 ```
 
-See other documentation section if you need:
-- cache usage
-- Loader usage
+See other documentation section if you need to:
+- use cache
+- use Loader
 - change FastRoute strategy
 - change reverse logic
 - change Invoker strategy (processing handlers and middlewares)
@@ -160,15 +160,15 @@ $router->setMiddlewares([
 ]);
 ```
 
-### Processing request
+### Request processing
 
-Since the router itself is Middleware, you must call the method ```process``` to process the router.
+Since the router itself is Middleware, you must call the method ```process``` to process the route.
 
 For simple usage without any Pipeline you can use default ```\Phact\Router\NotFoundHandler``` handler.
-It will throw ```\Phact\Router\Exception\NotFoundException``` if route not found.
+It will throw ```\Phact\Router\Exception\NotFoundException``` if route is not found.
 
-If route exists, but requested method not allowed, will be thrown 
-```\Phact\Router\Exception\MethodNotAllowedException``` exception. 
+If route exists but requested method is not allowed,
+the ```\Phact\Router\Exception\MethodNotAllowedException``` exception will be thrown. 
 
 ```php
 $response = $router->process($request, new NotFoundHandler());
@@ -176,7 +176,7 @@ $response = $router->process($request, new NotFoundHandler());
 
 ## URL reverse - URL generation
 
-If you added route with name, then you can generate URL by name and provided parameters.
+If you added route with a name, then you can generate URL by name and provided parameters.
 
 For example, add route:
 
@@ -196,14 +196,13 @@ You will get ```/test/harry```.
 
 ### A simple array as URL parameters
 
-Provided params can be a simple (not assoc.) array.
+Provided parameters can be a simple (not assoc.) array.
 
 In this case, the parameter substitution will be performed in order.
  
 For example, add route:
 
 ```php
-// Добавление роута с двумя параметрами
 $router->addRoute('GET', '/test/{name:[a-z]+}/{id:[0-9]+}', 'someHandler', 'test_double');
 ```
 
@@ -220,7 +219,7 @@ We will get ```/test/harry/12```.
 
 ### Generating query parameters from unused provided parameters
 
-By default, unused provided parameters will be converted to query parameters:
+By default, unused provided parameters will be converted to query parameters.
 
 For example, add route:
 
@@ -228,7 +227,7 @@ For example, add route:
 $router->addRoute('GET', '/test/{name:[a-z]+}', 'someHandler', 'test_with_name');
 ```
 
-Then, generate route:
+Then, generate URL:
 
 ```php
 $url = $router->reverse('test_with_name', [
@@ -242,9 +241,9 @@ We will get ```/test/harry?faculty=gryffindor```.
 
 ### Method url()
 
-Instead of method ```$router->reverse(...)``` you can apply the method ```$router->url(...)``` - they are equivalent.
+Instead of method ```$router->reverse(...)``` you can apply the method ```$router->url(...)``` as they are equivalent.
 
-### Change reverse logic
+### Change reverse behavior
 
 If you need to define your behavior for the reverse method, then:
 
@@ -258,12 +257,12 @@ $router = new Router(null, null, new MyAmazingReverserFactory());
 
 ## Supported types of handlers
 
-> Only relevant if you use the PSR-7 – compatible method of work.
-> If you use the router in the simplest way, then the handler can be any.
+> Only relevant if you use the PSR-7 compatible method of work.
+> If you use the router in the simplest way, then you can use any type of handler.
 
-Any of the provided handlers must return an object ```\Psr\Http\Message\ResponseInterface```.
+Any of the handlers presented below must return an object ```\Psr\Http\Message\ResponseInterface```.
 
-### String - class name and method name, "::" separated
+### String contaning a class name and a method name separated by "::"
 
 Example:
 
@@ -271,10 +270,10 @@ Example:
 $router->addRoute('GET', '/test', '\App\Handlers\MyHandler::myMethod', 'test');
 ```
 
-If Container are provided, then object will be requested from [Container](#container).
-If are not provided, then object will be created.
+If Container is provided, the object will be requested from [Container](#container).
+If Container is not provided, the object will be created.
 
-### String - a class name that implements an __invoke() method
+### String contaning a class name that implements an __invoke() method
 
 Example:
 
@@ -282,10 +281,10 @@ Example:
 $router->addRoute('GET', '/test', MyInvokableHandler::class, 'test');
 ```
 
-If Container are provided, then object will be requested from [Container](#container).
-If are not provided, then object will be created.
+If Container is provided, the object will be requested from [Container](#container).
+If Container is not provided, the object will be created.
 
-### Array - class name and method name
+### Array contaning a class name and a method name
 
 Example:
 
@@ -293,11 +292,10 @@ Example:
 $router->addRoute('GET', '/test', [MyHandler::class, 'myMethod'], 'test');
 ```
 
-If Container are provided, then object will be requested from [Container](#container).
-If are not provided, then object will be created.
+If Container is provided, the object will be requested from [Container](#container).
+If Container is not provided, the object will be created.
 
-
-### Array - object and method name
+### Array contaning an object and a method name
 
 Example:
 
@@ -325,7 +323,7 @@ $router->addRoute('GET', '/test', function(ServerRequestInterface $request, arra
 
 ### Changing supported handlers
 
-For change logic of handlers calling just [implement your own Invoker](#invoker)
+To change the logic of handlers call just [implement your own Invoker](#invoker)
 
 ## Supported types of Middleware
 
@@ -339,8 +337,8 @@ $router->map('POST', '/admin', new MyInvokableHandler(), 'admin', [
 ]);
 ```
 
-If Container are provided, then object will be requested from [Container](#container).
-If are not provided, then object will be created.
+If Container is provided, the object will be requested from [Container](#container).
+If Container is not provided, the object will be created.
 
 ### Object
 
@@ -352,7 +350,7 @@ $router->map('POST', '/admin', new MyInvokableHandler(), 'admin', [
 ]);
 ```
 
-### String-identifier
+### String identifier of the Middleware object Container's defenition 
 
 Only relevant when [used with Container](#container).
 
@@ -366,7 +364,7 @@ $router->map('POST', '/admin', new MyInvokableHandler(), 'admin', [
 
 ## Invoker
 
-Invoker, which implements the functionality of calling handlers and Middleware, is a replaceable part of the router.
+Invoker, which implements the handlers' and Middleware call functionality, is a replaceable part of the router.
 You can replace Invoker. Just implement ```\Phact\Router\Invoker``` interface and set it to the Router like this:
 
 ```php
@@ -382,7 +380,7 @@ just set it to the router like this:
 $router->setContainer($myContainer);
 ```
 
-> Attention! Router just provide Container to the default Invoker implementation.
+> Attention! Router just provides Container to the default Invoker implementation.
 > If you use your own Invoker implementation, keep that in mind.
 
 ## Loader
@@ -391,9 +389,9 @@ $router->setContainer($myContainer);
 
 You can implement your own class for loading routes from your own storage (file, database, etc.).
 
-For this:
-- Implement ```\Phact\Router\Loader``` for your own Loader 
-- Set your Loader to Router like this:
+To do that:
+- implement ```\Phact\Router\Loader``` for your own Loader 
+- set your Loader to Router like this:
 
 ```php
 $router->setLoader($myCustomLoader);
@@ -407,15 +405,15 @@ Method ```load``` will not be called if you [use Cache](#cache).
 
 > By default, Router does not use any cache.
 
-You can use any ```\Psr\SimpleCache\CacheInterface``` (PSR-16) implementation like this:
+You can use your ```\Psr\SimpleCache\CacheInterface``` (PSR-16) implementation like this:
 
 ```php
 $router->setCache($myCache);
 ```
 
-Routes set into the cache at the time of the first data receipt (```dispatch``` или ```reverse```), as well as after adding a route.
-Getting routes from the cache occurs on the first call ```dispatch``` or ```reverse``` 
-and avoids a resource-intensive call [Loader](#loader).
+Routes are set into the cache at the time of the first data receipt (```dispatch``` or ```reverse```), as well as after adding a route.
+Getting routes from the cache occurs on the first call of ```dispatch``` or ```reverse``` 
+and avoids a resource-intensive call of [Loader](#loader).
 
 ## Changes FastRoute strategies
 
@@ -425,7 +423,7 @@ You can replace any parts of Router:
 - RouteParser
 
 By default, Router uses GroupCountBased strategy.
-Any other strategy can be implemented similarly like default strategy, 
+Any other strategy can be implemented similarly to default strategy, 
 just provide your own implementations of needed objects:
 
 ```php
