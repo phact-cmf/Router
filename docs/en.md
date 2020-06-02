@@ -15,41 +15,42 @@ Main ideas:
 
 ## Оглавление
 
-- [Использование без PSR-7/15 совместимости](#использование-без-psr-715-совместимости)
-  - [Создание](#создание-router)
-  - [Добавление роута, группы роутов](#добавление-роута-группы-роутов)
-  - [Получение данных роута](#получение-данных-роута)
-- [Использование с PSR-7/15](#использование-с-psr-715)
-  - [Создание](#создание)
-  - [Добавление роутов, групп роутов](#добавление-роутов-групп-роутов)
-  - [Общие Middleware](#общие-middleware)
-  - [Обработка запроса](#обработка-запроса)
-- [URL reverse - генерация URL](#url-reverse---генерация-url)
-  - [Простой массив в качестве параметров URL](#простой-массив-в-качестве-параметров-url)
-  - [Генерация параметров запроса из неиспользованных параметров](#генерация-параметров-запроса-из-неиспользованных-параметров)
-  - [Метод URL()](#метод-url)
-  - [Изменение поведения reverse](#изменение-поведения-reverse)
+- [Usage without PSR-7/15 compatibility](#usage-without-psr-715-compatibility)
+  - [Create](#create-router)
+  - [Adding route, group of routes](#adding-route-group-of-routes)
+  - [Getting route data](#getting-route-data)
+- [Usage with PSR-7/15 compatibility](#usage-with-psr-715-compatibility)
+  - [Creating](#creating)
+  - [Adding routes, groups of routes](#adding-routes-groups-of-routes)
+  - [Common Middleware](#common-middleware)
+  - [Request processing](#request-processing)
+- [URL reverse - URL generation](#url-reverse---url-generation)
+  - [A simple array as URL parameters](#a-simple-array-as-url-parameters)
+  - [Generating query parameters from unused provided parameters](#generating-query-parameters-from-unused-provided-parameters)
+  - [Method url()](#method-url)
+  - [Change reverse behavior](#change-reverse-behavior)
 - [Supported types of handlers](#supported-types-of-handlers)
-  - [Строка - класс и метод, разделённые](#строка---класс-и-метод-разделенные-)
-  - [Строка - класс, у которого определен метод __invoke()](#строка---класс-у-которого-определен-метод-__invoke)
-  - [Массив - класс и имя метода](#массив---класс-и-имя-метода)
-  - [Массив - объект и имя метода](#массив---объект-и-имя-метода)
-  - [Callable-объект](#callable-объект)
+  - [String containing a class name and a method name separated by "::"](#string-containing-a-class-name-and-a-method-name-separated-by-)
+  - [String containing a class name that implements an __invoke() method](#string-containing-a-class-name-that-implements-an-__invoke-method)
+  - [Array containing a class name and a method name](#array-containing-a-class-name-and-a-method-name)
+  - [Array containing an object and a method name](#array-containing-an-object-and-a-method-name)
+  - [Callable-object](#callable-object)
   - [callback](#callback)
+  - [Changing supported handlers](#changing-supported-handlers)
 - [Supported types of Middleware](#supported-types-of-middleware)
-  - [Имя класса](#имя-класса)
-  - [Объект](#объект)
-  - [Строка-идентификатор, по которой Container вернёт объект Middleware](#строка-идентификатор-по-которой-container-вернет-объект-middleware)
+  - [Class name](#class-name)
+  - [Object](#object)
+  - [String identifier of the Middleware object Container's definition](#string-identifier-of-the-middleware-object-containers-definition)
 - [Invoker](#invoker)
 - [Container](#container)
 - [Loader](#loader)
 - [Cache](#cache)
-- [Изменение стратегий обработки FastRoute](#изменение-стратегий-обработки-fastroute)
+- [Changes FastRoute strategies](#changes-fastroute-strategies)
 
 ## Usage without PSR-7/15 compatibility
 
 Almost like [FastRoute](https://github.com/nikic/FastRoute), 
-but with [reversed routing](#url-reverse---генерация-url).
+but with [reversed routing](#url-reverse---url-generation).
 
 ### Create Router
 
@@ -262,7 +263,7 @@ $router = new Router(null, null, new MyAmazingReverserFactory());
 
 Any of the handlers presented below must return an object ```\Psr\Http\Message\ResponseInterface```.
 
-### String contaning a class name and a method name separated by "::"
+### String containing a class name and a method name separated by "::"
 
 Example:
 
@@ -273,7 +274,7 @@ $router->addRoute('GET', '/test', '\App\Handlers\MyHandler::myMethod', 'test');
 If Container is provided, the object will be requested from [Container](#container).
 If Container is not provided, the object will be created.
 
-### String contaning a class name that implements an __invoke() method
+### String containing a class name that implements an __invoke() method
 
 Example:
 
@@ -284,7 +285,7 @@ $router->addRoute('GET', '/test', MyInvokableHandler::class, 'test');
 If Container is provided, the object will be requested from [Container](#container).
 If Container is not provided, the object will be created.
 
-### Array contaning a class name and a method name
+### Array containing a class name and a method name
 
 Example:
 
@@ -295,7 +296,7 @@ $router->addRoute('GET', '/test', [MyHandler::class, 'myMethod'], 'test');
 If Container is provided, the object will be requested from [Container](#container).
 If Container is not provided, the object will be created.
 
-### Array contaning an object and a method name
+### Array containing an object and a method name
 
 Example:
 
